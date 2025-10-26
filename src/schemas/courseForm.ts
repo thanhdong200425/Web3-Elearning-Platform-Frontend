@@ -6,6 +6,21 @@ export const courseFormSchema = z.object({
   detailedDescription: z.string().min(1, 'Detailed description is required'),
   category: z.string().min(1, 'Category is required'),
   coverImage: z.instanceof(File).optional(),
+  // Web3 Configuration fields
+  paymentToken: z.string().min(1, 'Payment token is required'),
+  coursePrice: z.number().min(0, 'Course price must be positive'),
+  walletAddress: z.string().min(1, 'Wallet address is required'),
+  // Course Content fields
+  sections: z.array(z.object({
+    id: z.string(),
+    title: z.string().min(1, 'Section title is required'),
+    lessons: z.array(z.object({
+      id: z.string(),
+      title: z.string().min(1, 'Lesson title is required'),
+      content: z.string().optional(),
+      file: z.instanceof(File).optional(),
+    })).optional(),
+  })).optional(),
 });
 
 export type CourseFormData = z.infer<typeof courseFormSchema>;
@@ -18,4 +33,11 @@ export const categoryOptions = [
   { value: 'data-science', label: 'Data Science' },
   { value: 'blockchain', label: 'Blockchain' },
   { value: 'other', label: 'Other' },
+];
+
+export const tokenOptions = [
+  { value: 'USDC', label: 'USDC' },
+  { value: 'USDT', label: 'USDT' },
+  { value: 'ETH', label: 'ETH' },
+  { value: 'MATIC', label: 'MATIC' },
 ];

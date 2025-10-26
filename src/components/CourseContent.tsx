@@ -1,0 +1,257 @@
+import React, { useState } from 'react';
+import { UseFormSetValue, UseFormWatch } from 'react-hook-form';
+import { CourseFormData } from '../schemas/courseForm';
+import { Button } from '@heroui/button';
+
+interface CourseContentProps {
+  setValue: UseFormSetValue<CourseFormData>;
+  watch: UseFormWatch<CourseFormData>;
+}
+
+interface Section {
+  id: string;
+  title: string;
+  lessons?: Lesson[];
+}
+
+interface Lesson {
+  id: string;
+  title: string;
+  content?: string;
+  file?: File;
+}
+
+const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
+  const sections = watch('sections') || [];
+  const [isAddingSection, setIsAddingSection] = useState(false);
+
+  const addSection = () => {
+    const newSection: Section = {
+      id: `section-${Date.now()}`,
+      title: '',
+      lessons: [],
+    };
+    
+    const updatedSections = [...sections, newSection];
+    setValue('sections', updatedSections);
+    setIsAddingSection(true);
+  };
+
+  const updateSectionTitle = (sectionId: string, title: string) => {
+    const updatedSections = sections.map(section =>
+      section.id === sectionId ? { ...section, title } : section
+    );
+    setValue('sections', updatedSections);
+  };
+
+  const deleteSection = (sectionId: string) => {
+    const updatedSections = sections.filter(section => section.id !== sectionId);
+    setValue('sections', updatedSections);
+  };
+
+  const addLesson = (sectionId: string) => {
+    const newLesson: Lesson = {
+      id: `lesson-${Date.now()}`,
+      title: '',
+    };
+
+    const updatedSections = sections.map(section =>
+      section.id === sectionId
+        ? { ...section, lessons: [...(section.lessons || []), newLesson] }
+        : section
+    );
+    setValue('sections', updatedSections);
+  };
+
+  const updateLessonTitle = (sectionId: string, lessonId: string, title: string) => {
+    const updatedSections = sections.map(section =>
+      section.id === sectionId
+        ? {
+            ...section,
+            lessons: section.lessons?.map(lesson =>
+              lesson.id === lessonId ? { ...lesson, title } : lesson
+            ),
+          }
+        : section
+    );
+    setValue('sections', updatedSections);
+  };
+
+  const deleteLesson = (sectionId: string, lessonId: string) => {
+    const updatedSections = sections.map(section =>
+      section.id === sectionId
+        ? {
+            ...section,
+            lessons: section.lessons?.filter(lesson => lesson.id !== lessonId),
+          }
+        : section
+    );
+    setValue('sections', updatedSections);
+  };
+
+  return (
+    <div className="flex flex-col gap-6 h-full">
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-medium text-neutral-950">
+          Course Content & IPFS Upload
+        </h1>
+        <p className="text-base text-gray-600">
+          Build your course structure and upload content to decentralized storage
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-col gap-4 flex-1">
+        {/* Add Section Button */}
+        <Button
+          variant="bordered"
+          size="md"
+          onPress={addSection}
+          className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50 flex items-center gap-2"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8 1V15M1 8H15"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Add Section
+        </Button>
+
+        {/* Sections List */}
+        {sections.length > 0 && (
+          <div className="space-y-4">
+            {sections.map((section, sectionIndex) => (
+              <div
+                key={section.id}
+                className="bg-gray-50 border border-gray-200 rounded-lg p-4"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-500">
+                      Section {sectionIndex + 1}
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Enter section title"
+                      value={section.title}
+                      onChange={(e) => updateSectionTitle(section.id, e.target.value)}
+                      className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-neutral-950 placeholder-gray-400"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="light"
+                      onPress={() => addLesson(section.id)}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                    >
+                      + Add Lesson
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="light"
+                      onPress={() => deleteSection(section.id)}
+                      className="text-xs text-red-600 hover:text-red-700"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Lessons */}
+                {section.lessons && section.lessons.length > 0 && (
+                  <div className="ml-4 space-y-2">
+                    {section.lessons.map((lesson, lessonIndex) => (
+                      <div
+                        key={lesson.id}
+                        className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500">
+                            {sectionIndex + 1}.{lessonIndex + 1}
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="Enter lesson title"
+                            value={lesson.title}
+                            onChange={(e) => updateLessonTitle(section.id, lesson.id, e.target.value)}
+                            className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-950 placeholder-gray-400"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="light"
+                          onPress={() => deleteLesson(section.id, lesson.id)}
+                          className="text-xs text-red-600 hover:text-red-700"
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {sections.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 2L30 8V24L16 30L2 24V8L16 2Z"
+                  stroke="#9CA3AF"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M16 8V24M8 16H24"
+                  stroke="#9CA3AF"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No sections added yet
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Start building your course by adding sections and lessons
+            </p>
+            <Button
+              variant="solid"
+              size="md"
+              onPress={addSection}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Add Your First Section
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CourseContent;
