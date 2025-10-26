@@ -1,0 +1,11 @@
+---
+alwaysApply: false
+---
+- When converting a design to code:
+    - Break down complex UIs into smaller, reusable, and customizable React components.
+    - Favor the use of pre-defined components from `@heroui/react` wherever possible to ensure consistency and reduce code duplication.
+    - Use TailwindCSS utility classes as the primary styling method for layout, spacing, and visual appearance, rather than hand-written CSS.
+    - Compose components for better clarity and reusability; avoid large monolithic components.
+    - Pass props to components to enable customization and reusability.
+    - Only write new components when a pre-define component does not exist or does not fit the use case.
+    - Ensure each component is easy to maintain, with a single responsibility.
