@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const courseFormSchema = z.object({
   title: z.string().min(1, 'Course title is required').max(80, 'Title must be 80 characters or less'),
   shortDescription: z.string().min(1, 'Short description is required'),
-  detailedDescription: z.string().min(1, 'Detailed description is required'),
+  detailedDescription: z.string().optional().nullable(),
   category: z.string().min(1, 'Category is required'),
   coverImage: z.instanceof(File).optional(),
   // Web3 Configuration fields

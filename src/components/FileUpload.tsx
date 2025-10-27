@@ -31,13 +31,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
   return (
     <div className={`flex flex-col gap-1.5 w-full ${className}`}>
-      <label className="text-sm font-medium text-neutral-950">
-        Cover Image
-      </label>
+      <div className='flex items-center gap-1'>
+        <label className="text-sm font-medium text-neutral-950">
+          Cover Image
+        </label>
+        <span className="text-sm font-medium text-red-500">*</span>
+      </div>
+      {/* Required icon */}
       <div
-        className={`bg-gray-50 border-2 border-dashed rounded-[10px] h-[268px] w-full flex flex-col items-center justify-center relative ${
-          error ? 'border-red-500' : 'border-gray-300'
-        }`}
+        className={`bg-gray-50 border-2 border-dashed rounded-[10px] h-[268px] w-full flex flex-col items-center justify-center relative ${error ? 'border-red-500' : 'border-gray-300'
+          }`}
       >
         {/* Upload Icon */}
         <div className="w-12 h-12 mb-4 flex items-center justify-center">
@@ -71,14 +74,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
             />
           </svg>
         </div>
-        
+
         <h3 className="text-base font-medium text-neutral-950 mb-2">
           Upload Cover Image
         </h3>
         <p className="text-sm text-gray-600 text-center mb-6">
           Drag and drop an image here, or browse files
         </p>
-        
+
         <button
           type="button"
           onClick={handleBrowseClick}

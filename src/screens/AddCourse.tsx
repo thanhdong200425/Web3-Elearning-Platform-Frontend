@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -15,39 +15,42 @@ import StepIndicator from '../components/StepIndicator';
 import Web3Configuration from '../components/Web3Configuration';
 import CourseContent from '../components/CourseContent';
 import CoursePreview from '../components/CoursePreview';
+import { addToast } from '@heroui/toast';
 
 
 const AddCourse: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isDeploying, setIsDeploying] = useState(false);
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [isDeploying, setIsDeploying] = useState<boolean>(false);
   const totalSteps = 4;
 
-  const steps = [
-    {
-      number: 1,
-      title: 'Basic Information',
-      isActive: currentStep === 1,
-      isCompleted: currentStep > 1,
-    },
-    {
-      number: 2,
-      title: 'Web3 & Pricing Configuration',
-      isActive: currentStep === 2,
-      isCompleted: currentStep > 2,
-    },
-    {
-      number: 3,
-      title: 'Course Content & IPFS Upload',
-      isActive: currentStep === 3,
-      isCompleted: currentStep > 3,
-    },
-    {
-      number: 4,
-      title: 'Preview & Publish (Deploy)',
-      isActive: currentStep === 4,
-      isCompleted: false,
-    },
-  ];
+  const steps = useMemo(() => {
+    return [
+      {
+        number: 1,
+        title: 'Basic Information',
+        isActive: currentStep === 1,
+        isCompleted: currentStep > 1,
+      },
+      {
+        number: 2,
+        title: 'Web3 & Pricing Configuration',
+        isActive: currentStep === 2,
+        isCompleted: currentStep > 2,
+      },
+      {
+        number: 3,
+        title: 'Course Content & IPFS Upload',
+        isActive: currentStep === 3,
+        isCompleted: currentStep > 3,
+      },
+      {
+        number: 4,
+        title: 'Preview & Publish (Deploy)',
+        isActive: currentStep === 4,
+        isCompleted: false,
+      },
+    ];
+  }, [currentStep]);
 
   const {
     register,
@@ -70,7 +73,15 @@ const AddCourse: React.FC = () => {
     },
   });
 
+  const defaultLabelClassNames = useMemo(() => {
+    return 'text-sm font-medium text-neutral-950';
+  }, []);
+
   const coursePrice = watch('coursePrice') || 0;
+  const title = watch('title') || '';
+  const shortDescription = watch('shortDescription') || '';
+  const category = watch('category') || '';
+  const coverImage = watch('coverImage') || undefined;
 
   const onSubmit = async (data: CourseFormData) => {
     try {
@@ -81,6 +92,19 @@ const AddCourse: React.FC = () => {
   };
 
   const handleNextStep = () => {
+
+    // Check title, short description, category, cover image are not empty
+    // if (title.trim() === '' || shortDescription.trim() === '' || category.trim() === '' || coverImage === undefined) {
+    //   addToast({
+    //     title: 'Error',
+    //     description: 'Please fill in all required fields',
+    //     color: 'danger',
+    //     timeout: 3000,
+    //     shouldShowTimeoutProgress: true,
+    //   })
+    //   return;
+    // }
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -117,7 +141,7 @@ const AddCourse: React.FC = () => {
 
         {/* Main Content */}
         <div className="flex-1 p-8">
-          <div className="bg-white border border-gray-200 rounded-[14px] h-[907px] p-8">
+          <div className="bg-white border border-gray-200 rounded-[14px] p-8">
             <div className="flex flex-col gap-6 h-full">
               {/* Step Content */}
               {currentStep === 1 && (
@@ -136,30 +160,30 @@ const AddCourse: React.FC = () => {
                   <div className="flex flex-col gap-4 flex-1">
                     {/* Course Title */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-neutral-950">
-                        Course Title
-                      </label>
                       <Input
                         {...register('title')}
+                        label="Course Title"
                         placeholder="Enter course title (max 80 chars)"
+                        labelPlacement='outside-top'
                         maxLength={80}
+                        isRequired
                         isInvalid={!!errors.title}
                         errorMessage={errors.title?.message}
                         classNames={{
                           input: "bg-gray-100 border-0 rounded-lg",
                           inputWrapper: "bg-gray-100 border-0 rounded-lg px-3 py-2",
+                          label: defaultLabelClassNames,
                         }}
                       />
                     </div>
 
                     {/* Short Description */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-neutral-950">
-                        Short Description
-                      </label>
                       <Textarea
-                        label=""
+                        label="Short Description"
                         placeholder="Enter a brief description (max 250 chars)"
+                        isRequired
+                        labelPlacement='outside-top'
                         {...register('shortDescription')}
                         isInvalid={!!errors.shortDescription}
                         errorMessage={errors.shortDescription?.message}
@@ -167,41 +191,42 @@ const AddCourse: React.FC = () => {
                         classNames={{
                           input: "bg-gray-100 border-0 rounded-lg",
                           inputWrapper: "bg-gray-100 border-0 rounded-lg px-3 py-2",
+                          label: defaultLabelClassNames,
                         }}
                       />
                     </div>
 
                     {/* Detailed Description */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-neutral-950">
-                        Detailed Description
-                      </label>
                       <Textarea
-                        label=""
+                        label="Detailed Description"
                         placeholder="Provide detailed course information and objectives"
                         {...register('detailedDescription')}
                         isInvalid={!!errors.detailedDescription}
                         errorMessage={errors.detailedDescription?.message}
                         rows={3}
+                        labelPlacement='outside-top'
                         classNames={{
                           input: "bg-gray-100 border-0 rounded-lg",
                           inputWrapper: "bg-gray-100 border-0 rounded-lg px-3 py-2",
+                          label: defaultLabelClassNames,
                         }}
                       />
                     </div>
 
                     {/* Category */}
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-sm font-medium text-neutral-950">
-                        Category
-                      </label>
                       <Select
-                        {...register('category')}
+                        label="Category"
                         placeholder="Select category"
+                        isRequired
+                        {...register('category')}
                         isInvalid={!!errors.category}
                         errorMessage={errors.category?.message}
+                        labelPlacement='outside'
                         classNames={{
                           trigger: "bg-gray-100 border-0 rounded-lg px-3 py-2",
+                          label: defaultLabelClassNames,
                         }}
                       >
                         {categoryOptions.map((option) => (
