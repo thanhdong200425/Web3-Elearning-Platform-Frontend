@@ -15,12 +15,15 @@ import StepIndicator from '../components/StepIndicator';
 import Web3Configuration from '../components/Web3Configuration';
 import CourseContent from '../components/CourseContent';
 import CoursePreview from '../components/CoursePreview';
+import BackButton from '@/components/buttons/BackButton';
+import { useWriteContract } from 'wagmi';
+import { elearningPlatformABI, elearningPlatformAddress } from '@/contracts/ElearningPlatform';
+import { parseEther } from 'viem';
 import { addToast } from '@heroui/toast';
 
 
 const AddCourse: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
-  const [isDeploying, setIsDeploying] = useState<boolean>(false);
   const totalSteps = 4;
 
   const steps = useMemo(() => {
@@ -57,7 +60,7 @@ const AddCourse: React.FC = () => {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
   } = useForm<CourseFormData>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
@@ -73,54 +76,47 @@ const AddCourse: React.FC = () => {
     },
   });
 
+  const { data: hash, writeContract, isPending, isSuccess } = useWriteContract();
+
   const defaultLabelClassNames = useMemo(() => {
     return 'text-sm font-medium text-neutral-950';
   }, []);
 
   const coursePrice = watch('coursePrice') || 0;
-  const title = watch('title') || '';
-  const shortDescription = watch('shortDescription') || '';
-  const category = watch('category') || '';
-  const coverImage = watch('coverImage') || undefined;
 
   const onSubmit = async (data: CourseFormData) => {
     try {
-      console.log('Form submitted:', data);
+      writeContract({
+        address: elearningPlatformAddress,
+        abi: elearningPlatformABI,
+        functionName: 'createCourse',
+        args: [
+          data.title,
+          parseEther(data.coursePrice.toString()),
+          "bafybeigdyrzt5sfp7udh766prysmz3lksqjvh56bn32lbcehtfgs2xs7iy6yv4oibutq6aieaq36f"
+        ]
+      })
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error('Deployment failed:', error);
+      addToast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        color: 'danger',
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      })
+      throw new Error(error as string);
     }
   };
 
   const handleNextStep = () => {
-
-    // Check title, short description, category, cover image are not empty
-    // if (title.trim() === '' || shortDescription.trim() === '' || category.trim() === '' || coverImage === undefined) {
-    //   addToast({
-    //     title: 'Error',
-    //     description: 'Please fill in all required fields',
-    //     color: 'danger',
-    //     timeout: 3000,
-    //     shouldShowTimeoutProgress: true,
-    //   })
-    //   return;
-    // }
-
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handleDeploy = async () => {
-    setIsDeploying(true);
-    try {
-      await handleSubmit(onSubmit)();
-      // Here you would typically handle the blockchain deployment
-      console.log('Course deployed successfully!');
-    } catch (error) {
-      console.error('Deployment failed:', error);
-    } finally {
-      setIsDeploying(false);
-    }
+    handleSubmit(onSubmit)();
   };
 
   const handleBack = () => {
@@ -243,6 +239,7 @@ const AddCourse: React.FC = () => {
                       name="coverImage"
                       error={errors.coverImage}
                       accept="image/*"
+                      isRequired={false}
                     />
                   </div>
                 </>
@@ -253,6 +250,7 @@ const AddCourse: React.FC = () => {
                   register={register}
                   errors={errors}
                   coursePrice={coursePrice}
+                  setValue={setValue}
                 />
               )}
 
@@ -267,7 +265,7 @@ const AddCourse: React.FC = () => {
                 <CoursePreview
                   watch={watch}
                   onDeploy={handleDeploy}
-                  isDeploying={isDeploying}
+                  isDeploying={isPending}
                 />
               )}
 
@@ -301,14 +299,7 @@ const AddCourse: React.FC = () => {
               {currentStep === 4 && (
                 <div className="border-t border-gray-200 pt-6">
                   <div className="flex justify-start">
-                    <Button
-                      variant="bordered"
-                      size="md"
-                      onPress={handleBack}
-                      className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50"
-                    >
-                      Back
-                    </Button>
+                    <BackButton onBack={handleBack} />
                   </div>
                 </div>
               )}

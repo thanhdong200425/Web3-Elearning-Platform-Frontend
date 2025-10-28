@@ -20,7 +20,7 @@ export const courseFormSchema = z.object({
       content: z.string().optional(),
       file: z.instanceof(File).optional(),
     })).optional(),
-  })).optional(),
+  })).optional().nullable(),
 });
 
 export type CourseFormData = z.infer<typeof courseFormSchema>;

@@ -30,6 +30,7 @@
     "@react-types/shared": "3.32.1",
     "@tailwindcss/postcss": "4.1.11",
     "@tailwindcss/vite": "4.1.11",
+    "@tanstack/react-query": "^5.90.5",
     "clsx": "2.1.1",
     "framer-motion": "11.18.2",
     "react": "18.3.1",
@@ -38,6 +39,8 @@
     "react-router-dom": "6.23.0",
     "tailwind-variants": "3.1.1",
     "tailwindcss": "4.1.11",
+    "viem": "^2.38.4",
+    "wagmi": "^2.19.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {

@@ -7,6 +7,7 @@ export interface FileUploadProps {
   setValue: UseFormSetValue<any>;
   name: string;
   error?: FieldError;
+  isRequired?: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -15,6 +16,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   setValue,
   name,
   error,
+  isRequired = true,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,7 +37,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         <label className="text-sm font-medium text-neutral-950">
           Cover Image
         </label>
-        <span className="text-sm font-medium text-red-500">*</span>
+        {isRequired && <span className="text-sm font-medium text-red-500">*</span>}
       </div>
       {/* Required icon */}
       <div

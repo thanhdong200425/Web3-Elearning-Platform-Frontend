@@ -3,21 +3,39 @@ import { UseFormRegister, FieldErrors } from 'react-hook-form';
 import { CourseFormData, tokenOptions } from '../schemas/courseForm';
 import { Input } from '@heroui/input';
 import { Select, SelectItem } from '@heroui/select';
+import { Button } from '@heroui/button';
+import { injected, useAccount, useConnect, useDisconnect } from 'wagmi';
 
 interface Web3ConfigurationProps {
   register: UseFormRegister<CourseFormData>;
   errors: FieldErrors<CourseFormData>;
   coursePrice: number;
+  setValue?: (field: keyof CourseFormData, value: any) => void;
 }
 
 const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
   register,
   errors,
   coursePrice,
+  setValue,
 }) => {
   const platformFee = 0.05; // 5%
   const platformFeeAmount = coursePrice * platformFee;
   const revenue = coursePrice - platformFeeAmount;
+  const { connect } = useConnect();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+
+  const handleConnectWallet = () => {
+    connect({ connector: injected() })
+    if (address && setValue) {
+      setValue('walletAddress', address);
+    }
+  }
+
+  const handleDisconnectWallet = () => {
+    disconnect();
+  }
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -71,6 +89,10 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
 
       {/* Form Fields */}
       <div className="flex flex-col gap-4 flex-1">
+        <div>
+          {!isConnected ? <Button className='bg-black text-white font-semibold' onPress={handleConnectWallet}>Connect Wallet</Button> : <Button className='bg-black text-white font-semibold' onPress={handleDisconnectWallet}>Disconnect wallet</Button>}
+        </div>
+
         {/* Payment Token */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-neutral-950">
@@ -125,6 +147,8 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
           <Input
             {...register('walletAddress')}
             placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+            value={address ?? ''}
+            disabled={!isConnected}
             isInvalid={!!errors.walletAddress}
             errorMessage={errors.walletAddress?.message}
             classNames={{
@@ -132,8 +156,8 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
               inputWrapper: "bg-gray-50 border-0 rounded-lg px-3 py-2",
             }}
           />
-          <p className="text-sm text-gray-500">
-            Connected wallet address where payments will be received
+          <p className={`text-sm text-gray-500 ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+            {isConnected ? `Connected wallet` : 'Not connected'}
           </p>
         </div>
 
