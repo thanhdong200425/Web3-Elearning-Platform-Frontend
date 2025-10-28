@@ -146,7 +146,7 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
           </label>
           <Input
             {...register('walletAddress')}
-            placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+            placeholder="Your wallet address"
             value={address ?? ''}
             disabled={!isConnected}
             isInvalid={!!errors.walletAddress}
