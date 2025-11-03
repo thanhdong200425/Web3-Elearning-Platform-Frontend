@@ -1,160 +1,148 @@
-import React, { useState } from 'react';
-import ProfileHeader from '../components/ProfileHeader';
-import PersonalDetailsCard from '../components/PersonalDetailsCard';
-import VerifiedCredentialsSection from '../components/VerifiedCredentialsSection';
-import CertificateProofModal from '../components/CertificateProofModal';
-import { addToast } from '@heroui/toast';
+import React, { useState } from "react";
+import { Button } from "@heroui/button";
+import { Card, CardBody } from "@heroui/card";
+import { Link } from "react-router-dom";
+import { addToast } from "@heroui/toast";
+import { createAndUploadCertificateMeta } from "@/utils/certificates";
 
-interface StudentProfileProps {
-    studentData?: {
-        name: string;
-        studentId: string;
-        walletAddress: string;
-        avatarUrl?: string;
-        email: string;
-        phone: string;
-        dateOfBirth: string;
-        institution: string;
-        major: string;
-        credentials: Array<{
-            courseName: string;
-            issuer: string;
-            issueDate: string;
-            transactionHash?: string;
-        }>;
-    };
+interface CompletedCourse {
+  id: string;
+  title: string;
+  category: string;
+  certificate: boolean;
+  certificateCid?: string; // CID IPFS
 }
 
-const StudentProfile: React.FC<StudentProfileProps> = ({
-    studentData,
-}) => {
-    const [selectedCertificate, setSelectedCertificate] = useState<{
-        courseName: string;
-        studentName: string;
-        issuer: string;
-        issueDate: string;
-        transactionHash: string;
-    } | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+const StudentProfile: React.FC = () => {
+  const [student] = useState({
+    name: "Nguyễn Đăng Vỹ",
+    email: "vynguyen@example.com",
+    wallet: "0xA1B2C3D4E5F6...",
+  });
 
-    // Default data - in a real app, this would come from props or API
-    const defaultData = {
-        name: 'Nguyen Van An',
-        studentId: 'STU-2025-001',
-        walletAddress: '0xABc123456789012345678901234567890123456D',
-        avatarUrl: undefined,
-        email: 'nguyenvanan@example.edu',
-        phone: '+84 912 345 678',
-        dateOfBirth: 'January 15, 2000',
-        institution: 'Đại học Quốc gia TP.HCM',
-        major: 'Computer Science & Blockchain Technology',
-        credentials: [
-            {
-                courseName: 'Blockchain Fundamentals',
-                issuer: 'EduTech Institute',
-                issueDate: '10/25/2025',
-                transactionHash:
-                    '0x8f3d5c2a9b1e6f4d7c8e3a2b5d9f1e4c6a8b2d5f7e3c1a4b6d8f2e5c7a9b3d1e',
-            },
-            {
-                courseName: 'Smart Contract Development',
-                issuer: 'Web3 Academy',
-                issueDate: '09/12/2025',
-                transactionHash:
-                    '0x9a4e6d3c1b8f2e5d7c9a3b6d4f1e8c2a5b9d7e3f1c4a6b8d2e5c7a9b3d1f4e',
-            },
-            {
-                courseName: 'DeFi & Token Economics',
-                issuer: 'Crypto Learning Hub',
-                issueDate: '08/03/2025',
-                transactionHash:
-                    '0x7b5c3e9f2d8a1c6b4e7d9f3a2c5b8e1d4f7a9c3b6e2d5f8a1c4b7e9d2f5a8c',
-            },
-        ],
-    };
+  const [courses, setCourses] = useState<CompletedCourse[]>([
+    { id: "1", title: "Blockchain Fundamentals", category: "Blockchain", certificate: true },
+    { id: "2", title: "Smart Contract Development", category: "Programming", certificate: true },
+    { id: "3", title: "React for Beginners", category: "Frontend", certificate: false },
+  ]);
 
-    const data = studentData || defaultData;
+  // per-course loading state
+  const [generating, setGenerating] = useState<Record<string, boolean>>({});
 
-    const handleCopyWallet = () => {
-        addToast({
-            title: 'Copied!',
-            description: 'Wallet address copied to clipboard',
-            color: 'success',
-            timeout: 2000,
-        });
-    };
+  const handleGenerateCertificate = async (courseId: string) => {
+    const course = courses.find((c) => c.id === courseId);
+    if (!course || generating[courseId]) return;
 
-    const handleViewProof = (credential: {
-        courseName: string;
-        issuer: string;
-        issueDate: string;
-        transactionHash?: string;
-    }) => {
-        setSelectedCertificate({
-            courseName: credential.courseName,
-            studentName: data.name,
-            issuer: credential.issuer,
-            issueDate: credential.issueDate,
-            transactionHash:
-                credential.transactionHash ||
-                '0x8f3d5c2a9b1e6f4d7c8e3a2b5d9f1e4c6a8b2d5f7e3c1a4b6d8f2e5c7a9b3d1e',
-        });
-        setIsModalOpen(true);
-    };
+    try {
+      setGenerating((s) => ({ ...s, [courseId]: true }));
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setSelectedCertificate(null);
-    };
+      addToast({
+        title: "Generating Certificate",
+        description: "Uploading certificate metadata to IPFS...",
+        color: "primary",
+      });
 
-    const credentialsWithHandlers = data.credentials.map((cred) => ({
-        ...cred,
-        onViewProof: () => handleViewProof(cred),
-    }));
+      const { cid } = await createAndUploadCertificateMeta({
+        studentName: student.name,
+        studentWallet: student.wallet,
+        courseTitle: course.title,
+        courseId: course.id,
+      });
+setCourses((prev: CompletedCourse[]) => {
+  return prev.map((c): CompletedCourse => {
+    if (c.id === courseId) {
+      return { ...c, certificate: true, certificateCid: cid as unknown as string };
+    }
+    return c;
+  });
+});
 
-    return (
-        <div
-            className="min-h-screen p-12"
-            style={{
-                background:
-                    'linear-gradient(127.68deg, rgba(248, 250, 252, 1) 0%, rgba(239, 246, 255, 1) 100%)',
-            }}
-        >
-            <div className="max-w-6xl mx-auto flex flex-col gap-8">
-                {/* Profile Header */}
-                <ProfileHeader
-                    name={data.name}
-                    studentId={data.studentId}
-                    walletAddress={data.walletAddress}
-                    avatarUrl={data.avatarUrl}
-                    onCopyWallet={handleCopyWallet}
-                    isVerified={true}
-                />
 
-                {/* Personal Details */}
-                <PersonalDetailsCard
-                    email={data.email}
-                    phone={data.phone}
-                    dateOfBirth={data.dateOfBirth}
-                    institution={data.institution}
-                    major={data.major}
-                />
+      addToast({
+        title: "Certificate Created",
+        description: `Uploaded to IPFS (CID: ${cid})`,
+        color: "success",
+      });
+    } catch (error) {
+      console.error(error);
+      addToast({
+        title: "Error",
+        description: "Failed to upload certificate metadata.",
+        color: "danger",
+      });
+    } finally {
+      setGenerating((s) => ({ ...s, [courseId]: false }));
+    }
+  };
 
-                {/* Verified Credentials */}
-                <VerifiedCredentialsSection credentials={credentialsWithHandlers} />
-            </div>
+  return (
+    <div className="min-h-screen bg-gray-50 p-10">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">🎓 Student Profile</h1>
 
-            {/* Certificate Proof Modal */}
-            {selectedCertificate && (
-                <CertificateProofModal
-                    isOpen={isModalOpen}
-                    onClose={handleCloseModal}
-                    certificate={selectedCertificate}
-                />
-            )}
+        <Card className="mb-8 shadow-md border border-gray-200">
+          <CardBody className="space-y-2">
+            <p><strong>Name:</strong> {student.name}</p>
+            <p><strong>Email:</strong> {student.email}</p>
+            <p><strong>Wallet Address:</strong> {student.wallet}</p>
+          </CardBody>
+        </Card>
+
+        <h2 className="text-xl font-semibold mb-4">My Courses</h2>
+        <div className="space-y-4">
+          {courses.map((course) => (
+            <Card key={course.id} className="border border-gray-200 shadow-sm">
+              <CardBody className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-medium">{course.title}</h3>
+                  <p className="text-sm text-gray-500">{course.category}</p>
+                </div>
+
+                {course.certificate ? (
+                  <>
+                    {course.certificateCid ? (
+                      <div className="flex flex-col items-end gap-1">
+                        {/* If your Certificate page expects a CID, this is correct.
+                           If it expects a courseId instead, change to `/certificate/${course.id}` */}
+                        <Link to={`/certificate/${course.certificateCid}`}>
+                          <Button color="primary" variant="solid" size="sm">
+                            View Certificate
+                          </Button>
+                        </Link>
+                        <a
+                          href={`https://gateway.pinata.cloud/ipfs/${course.certificateCid}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-blue-600 underline"
+                        >
+                          View on IPFS
+                        </a>
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="solid"
+                        className="bg-gray-900 text-white hover:bg-gray-800"
+                        isLoading={!!generating[course.id]}
+                        isDisabled={!!generating[course.id]}
+                        onPress={() => handleGenerateCertificate(course.id)}
+                      >
+                        {generating[course.id] ? "Generating…" : "Generate Certificate"}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Button disabled size="sm" variant="bordered">
+                    Not Completed
+                  </Button>
+                )}
+              </CardBody>
+            </Card>
+          ))}
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default StudentProfile;
-

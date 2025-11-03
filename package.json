@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@heroui/button": "^2.2.27",
+    "@heroui/card": "^2.2.25",
     "@heroui/code": "2.2.21",
     "@heroui/dropdown": "2.3.27",
     "@heroui/input": "^2.4.28",
@@ -31,6 +32,7 @@
     "@tailwindcss/postcss": "4.1.11",
     "@tailwindcss/vite": "4.1.11",
     "@tanstack/react-query": "^5.90.5",
+    "axios": "^1.13.1",
     "clsx": "2.1.1",
     "framer-motion": "11.18.2",
     "react": "18.3.1",

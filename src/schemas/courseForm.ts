@@ -1,16 +1,24 @@
 import { z } from 'zod';
 
 export const courseFormSchema = z.object({
+  // ===== Basic info (giữ nguyên) =====
   title: z.string().min(1, 'Course title is required').max(80, 'Title must be 80 characters or less'),
   shortDescription: z.string().min(1, 'Short description is required'),
   detailedDescription: z.string().optional().nullable(),
   category: z.string().min(1, 'Category is required'),
+
+  // Ảnh bìa: file gốc (giữ nguyên)
   coverImage: z.instanceof(File).optional(),
-  // Web3 Configuration fields
+  // 👇 Thêm 2 field phụ để lưu kết quả upload IPFS (tùy chọn)
+  coverImageIpfsCid: z.string().optional(),
+  coverImageUrl: z.string().url().optional(),
+
+  // ===== Web3 config (giữ nguyên) =====
   paymentToken: z.string().min(1, 'Payment token is required'),
   coursePrice: z.number().min(0, 'Course price must be positive'),
   walletAddress: z.string().min(1, 'Wallet address is required'),
-  // Course Content fields
+
+  // ===== Course content (giữ nguyên + bổ sung IPFS cho lesson file) =====
   sections: z.array(z.object({
     id: z.string(),
     title: z.string().min(1, 'Section title is required'),
@@ -18,7 +26,13 @@ export const courseFormSchema = z.object({
       id: z.string(),
       title: z.string().min(1, 'Lesson title is required'),
       content: z.string().optional(),
+
+      // file upload gốc (giữ nguyên)
       file: z.instanceof(File).optional(),
+
+      // 👇 field phụ sau khi upload file bài học lên IPFS
+      fileIpfsCid: z.string().optional(),
+      fileUrl: z.string().url().optional(),
     })).optional(),
   })).optional().nullable(),
 });
