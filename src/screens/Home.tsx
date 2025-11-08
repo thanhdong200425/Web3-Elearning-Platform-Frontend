@@ -3,7 +3,7 @@ import { usePublicClient, useReadContract } from 'wagmi';
 import { addToast } from '@heroui/toast';
 import { elearningPlatformABI, elearningPlatformAddress } from '@/contracts/ElearningPlatform';
 import Header from '@/components/Header';
-import MainTitle from '@/components/MainTitle';
+import PartnerLogosSection from '@/components/PartnerLogosSection';
 import TrendingSection from '@/components/TrendingSection';
 import HotReleasesSection from '@/components/HotReleasesSection';
 import AllCoursesSection from '@/components/AllCoursesSection';
@@ -119,9 +119,9 @@ const Home: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
-      <MainTitle />
+      <PartnerLogosSection />
       
       {courses.length > 0 ? (
         <>
@@ -130,7 +130,7 @@ const Home: React.FC = () => {
           <AllCoursesSection courses={courses} />
         </>
       ) : (
-        <div className="text-center py-20">
+        <div className="text-center py-20 px-8">
           <p className="text-xl text-gray-600">
             Chưa có khóa học nào được tạo. Hãy tạo khóa học đầu tiên!
           </p>

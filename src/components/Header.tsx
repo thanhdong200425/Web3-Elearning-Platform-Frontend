@@ -1,60 +1,96 @@
 import React from "react";
-import {
-  Brain,
-  Building2,
-  Code,
-  University,
-  Network,
-  Cpu,
-  Atom,
-} from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { BookOpen, Plus, Brain, User } from "lucide-react";
+import { useAccount } from "wagmi";
+
 const Header: React.FC = () => {
-  const logos = [
-    { name: "Google", icon: <Network className="w-5 h-5 text-blue-500" /> },
-    {
-      name: "DeepLearning.AI",
-      icon: <Brain className="w-5 h-5 text-pink-500" />,
-    },
-    { name: "Amazon", icon: <University className="w-5 h-5 text-amber-600" /> },
-    { name: "IBM", icon: <Cpu className="w-5 h-5 text-gray-700" /> },
-    {
-      name: "Viet Nam - Korea University",
-      icon: <Building2 className="w-5 h-5 text-green-700" />,
-    },
-    { name: "Microsoft", icon: <Code className="w-5 h-5 text-orange-600" /> },
-    { name: "Meta", icon: <Atom className="w-5 h-5 text-blue-700" /> },
-  ];
+  const { isConnected } = useAccount();
+  const location = useLocation();
+  const isCoursesPage = location.pathname === "/";
+
   return (
-    <header className="bg-gray-50 py-6 px-8 shadow-sm border-b border-gray-200">
-      {" "}
-      <div className="max-w-7xl mx-auto flex flex-col items-center gap-4">
-        {" "}
-        <p className="text-sm sm:text-base text-gray-700 text-center font-medium">
-          {" "}
-          Learn from <span className="text-blue-600 font-semibold">
-            350+
-          </span>{" "}
-          leading universities and companies{" "}
-        </p>{" "}
-        <div className="flex flex-wrap justify-center gap-3">
-          {" "}
-          {logos.map(({ name, icon }) => (
-            <div
-              key={name}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-full shadow-sm border border-gray-200 hover:border-blue-400 hover:shadow-md transition-all duration-300 cursor-pointer"
-              title={name}
-            >
-              {" "}
-              {icon}{" "}
-              <span className="text-sm text-gray-700 font-medium whitespace-nowrap">
-                {" "}
-                {name}{" "}
-              </span>{" "}
+    <header className="bg-white border-b border-slate-200 h-[65px] flex items-center px-8">
+      <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+        {/* Logo and Brand */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-[10px] flex items-center justify-center bg-gray-100">
+            <div className="w-6 h-6 relative">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2L2 7L12 12L22 7L12 2Z"
+                  stroke="#030213"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M2 17L12 22L22 17"
+                  stroke="#030213"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M2 12L12 17L22 12"
+                  stroke="#030213"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
-          ))}{" "}
-        </div>{" "}
-      </div>{" "}
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-base font-normal leading-6 text-[#0f172b]">
+              Web3 Learning Platform
+            </h1>
+            <p className="text-xs font-normal leading-4 text-[#62748e]">
+              Courses verified by Blockchain and stored on IPFS
+            </p>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex items-center gap-2">
+          <Link
+            to="/"
+            className={`h-9 px-3 rounded-lg flex items-center gap-2 ${isCoursesPage
+                ? "bg-[#030213] text-white"
+                : "text-neutral-950 hover:bg-gray-50"
+              }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span className="text-sm font-normal">Courses</span>
+          </Link>
+          {isConnected && (
+            <>
+              <Link
+                to="/add-course"
+                className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-sm font-normal">Create Course</span>
+              </Link>
+              <button className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50">
+                <Brain className="w-4 h-4" />
+                <span className="text-sm font-normal">AI Tutor</span>
+              </button>
+              <button className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50">
+                <User className="w-4 h-4" />
+                <span className="text-sm font-normal">Profile</span>
+              </button>
+            </>
+          )}
+        </nav>
+      </div>
     </header>
   );
 };
+
 export default Header;
