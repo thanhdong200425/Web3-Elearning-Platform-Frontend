@@ -3,6 +3,7 @@ import { ToastProvider } from '@heroui/toast';
 import { Routes, Route } from 'react-router-dom';
 import Home from './screens/Home';
 import AddCourse from './screens/AddCourse';
+import AITutor from './screens/AITutor';
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/add-course" element={<AddCourse />} />
+        <Route path="/ai-tutor" element={<AITutor />} />
       </Routes>
     </HeroUIProvider>
   );

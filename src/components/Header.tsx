@@ -77,10 +77,17 @@ const Header: React.FC = () => {
                 <Plus className="w-4 h-4" />
                 <span className="text-sm font-normal">Create Course</span>
               </Link>
-              <button className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50">
+              <Link
+                to="/ai-tutor"
+                className={`h-9 px-3 rounded-lg flex items-center gap-2 ${
+                  location.pathname === '/ai-tutor'
+                    ? 'bg-[#030213] text-white'
+                    : 'text-neutral-950 hover:bg-gray-50'
+                }`}
+              >
                 <Brain className="w-4 h-4" />
                 <span className="text-sm font-normal">AI Tutor</span>
-              </button>
+              </Link>
               <button className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50">
                 <User className="w-4 h-4" />
                 <span className="text-sm font-normal">Profile</span>
