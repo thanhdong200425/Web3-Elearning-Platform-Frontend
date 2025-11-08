@@ -1,25 +1,24 @@
 import { uploadJsonToIPFS } from "@/utils/pinata";
 
-/** Dữ liệu metadata chuẩn cho Certificate NFT (tạm thời dùng cho test) */
 export type CertificateMeta = {
-  name: string;                 // "{student} - {course} Certificate"
-  description: string;          // "Certificate of completion for ..."
+  name: string;
+  description: string;
   student: { name: string; wallet?: string };
   course: { title: string; id?: string };
-  completedAt: string;          // ISO date
-  image?: string;               // ipfs://CID (optional, nếu có ảnh nền)
+  completedAt: string;
+  image?: string;
   version: "v1";
 };
 
-/** Tạo & upload metadata certificate lên IPFS, trả về CID + ipfs uri + gateway url */
 export async function createAndUploadCertificateMeta(params: {
   studentName: string;
   studentWallet?: string;
   courseTitle: string;
   courseId?: string;
-  imageCidOptional?: string;    // nếu bạn có ảnh nền certificate đã up IPFS
+  imageCidOptional?: string;
 }) {
   const meta: CertificateMeta = {
+    // Giữ nguyên tiếng Việt trong JSON (đọc từ gateway vẫn thấy đủ dấu)
     name: `${params.studentName} - ${params.courseTitle} Certificate`,
     description: `Certificate of completion for ${params.courseTitle}`,
     student: { name: params.studentName, wallet: params.studentWallet },
@@ -29,8 +28,12 @@ export async function createAndUploadCertificateMeta(params: {
     version: "v1",
   };
 
-  const cid = await uploadJsonToIPFS(meta);               // <- Pinata JSON
+  // Tên hiển thị ở Pinata UI (ASCII, không lỗi)
+  const pinName = `${params.studentName} - ${params.courseTitle} - certificate.json`;
+
+  const { cid, url } = await uploadJsonToIPFS(meta, pinName);
   const ipfsUri = `ipfs://${cid}`;
-  const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${cid}`;
+  const gatewayUrl = url;
+
   return { cid, ipfsUri, gatewayUrl, meta };
 }
