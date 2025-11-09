@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface Course {
   id: bigint;
@@ -17,14 +18,22 @@ interface Course {
 const IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
 
 const HotReleaseCard: React.FC<{ course: Course }> = ({ course }) => {
+  const navigate = useNavigate();
   const imageUrl = course.metadata?.imageCid
     ? `${IPFS_GATEWAY}${course.metadata.imageCid}`
     : 'https://via.placeholder.com/400x250';
 
   const rating = course.metadata?.rating || 4.5;
 
+  const handleClick = () => {
+    navigate(`/course/${course.id}`);
+  };
+
   return (
-    <div className="bg-white rounded-xl overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300 group">
+    <div
+      className="bg-white rounded-xl overflow-hidden relative shadow-lg hover:shadow-xl transition-shadow duration-300 group cursor-pointer"
+      onClick={handleClick}
+    >
       <img
         src={imageUrl}
         alt={course.title}
@@ -46,6 +55,10 @@ const HotReleaseCard: React.FC<{ course: Course }> = ({ course }) => {
       <button
         className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-white rounded-full p-3 shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-gray-100"
         aria-label={`View course ${course.title}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleClick();
+        }}
       >
         <span className="font-bold text-lg">→</span>
       </button>

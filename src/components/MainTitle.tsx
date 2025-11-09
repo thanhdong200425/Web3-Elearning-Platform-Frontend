@@ -19,11 +19,18 @@ const MainTitle: React.FC = () => {
         </div>
 
         {isConnected && (
-          <Link to="/add-course">
-            <Button variant="solid" size="lg" className='bg-black text-white hover:bg-gray-900'>
-              + Create New Course
-            </Button>
-          </Link>
+          <div className="flex gap-3">
+            <Link to="/my-courses">
+              <Button variant="bordered" size="lg" className='border-gray-300 text-gray-700 hover:bg-gray-50'>
+                My Courses
+              </Button>
+            </Link>
+            <Link to="/add-course">
+              <Button variant="solid" size="lg" className='bg-black text-white hover:bg-gray-900'>
+                + Create New Course
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
     </section>

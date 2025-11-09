@@ -65,14 +65,26 @@ const Home: React.FC = () => {
           let metadata = undefined;
 
           try {
-            const url = `${IPFS_GATEWAY}${contentCid}/metadata.json`; 
-            const res = await fetch(url);
+            // Fetch content.json from IPFS (which contains imageCid)
+            const contentUrl = `${IPFS_GATEWAY}${contentCid}`;
+            const contentRes = await fetch(contentUrl);
             
-            if (res.ok) {
-              metadata = { ...await res.json(), rating: (await res.json()).rating || 4.5 }; 
+            if (contentRes.ok) {
+              const contentData = await contentRes.json();
+              
+              // Extract imageCid from content.json if available
+              if (contentData.imageCid) {
+                metadata = {
+                  imageCid: contentData.imageCid,
+                  description: contentData.description,
+                  shortDescription: contentData.shortDescription,
+                  category: contentData.category,
+                  rating: contentData.rating || 4.5,
+                };
+              }
             }
           } catch (err) {
-            console.warn(`⚠️ Lỗi tải metadata từ IPFS (${contentCid}):`, err);
+            console.warn(`⚠️ Lỗi tải nội dung từ IPFS (${contentCid}):`, err);
           }
           
           return { id, instructor, price, title, contentCid, metadata };
