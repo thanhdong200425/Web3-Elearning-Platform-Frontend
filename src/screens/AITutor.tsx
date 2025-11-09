@@ -8,7 +8,8 @@ import Header from "@/components/Header";
 import ContentFormatCard from "@/components/ContentFormatCard";
 import SuggestionChip from "@/components/SuggestionChip";
 import AssessmentCheckbox from "@/components/AssessmentCheckbox";
-import { generateDemo } from "@/services/aiService";
+import { generateCourseContent } from "@/services/aiService";
+import { addToast } from "@heroui/toast";
 
 type ContentFormat = "full-course" | "study-guide" | "learning-path";
 
@@ -21,7 +22,7 @@ const AITutor: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const suggestionTopics = [
-    "Smart Contract Security",
+    "JavaScript for begineers",
     "DeFi Protocol Design",
     "NFT Development",
     "Blockchain Consensus",
@@ -34,11 +35,24 @@ const AITutor: React.FC = () => {
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      await generateDemo("Test");
-      // Navigate to AI result page after generation
-      navigate("/ai-result");
+      const courseData = await generateCourseContent({
+        topic: learningTopic,
+        contentFormat: contentFormat,
+        includeAssessments: includeAssessments,
+      });
+
+      // Navigate to AI result page with the generated course data
+      navigate("/ai-result", { state: { courseData } });
     } catch (error) {
       console.error("Error generating content:", error);
+      addToast({
+        title: "Error",
+        description:
+          "There was an error generating the learning content. Please try again.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
     } finally {
       setIsGenerating(false);
     }
