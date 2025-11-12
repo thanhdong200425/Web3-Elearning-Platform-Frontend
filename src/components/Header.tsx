@@ -16,32 +16,32 @@ const Header: React.FC = () => {
           <div className="w-10 h-10 rounded-[10px] flex items-center justify-center bg-gray-100">
             <div className="w-6 h-6 relative">
               <svg
-                width="24"
+                fill="none"
                 height="24"
                 viewBox="0 0 24 24"
-                fill="none"
+                width="24"
                 xmlns="http://www.w3.org/2000/svg"
               >
                 <path
                   d="M12 2L2 7L12 12L22 7L12 2Z"
                   stroke="#030213"
-                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  strokeWidth="2"
                 />
                 <path
                   d="M2 17L12 22L22 17"
                   stroke="#030213"
-                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  strokeWidth="2"
                 />
                 <path
                   d="M2 12L12 17L22 12"
                   stroke="#030213"
-                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  strokeWidth="2"
                 />
               </svg>
             </div>
@@ -59,11 +59,12 @@ const Header: React.FC = () => {
         {/* Navigation */}
         <nav className="flex items-center gap-2">
           <Link
-            to="/"
-            className={`h-9 px-3 rounded-lg flex items-center gap-2 ${isCoursesPage
+            className={`h-9 px-3 rounded-lg flex items-center gap-2 ${
+              isCoursesPage
                 ? "bg-[#030213] text-white"
                 : "text-neutral-950 hover:bg-gray-50"
-              }`}
+            }`}
+            to="/"
           >
             <BookOpen className="w-4 h-4" />
             <span className="text-sm font-normal">Courses</span>
@@ -71,27 +72,30 @@ const Header: React.FC = () => {
           {isConnected && (
             <>
               <Link
-                to="/add-course"
                 className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50"
+                to="/add-course"
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm font-normal">Create Course</span>
               </Link>
               <Link
-                to="/ai-tutor"
                 className={`h-9 px-3 rounded-lg flex items-center gap-2 ${
-                  location.pathname === '/ai-tutor'
-                    ? 'bg-[#030213] text-white'
-                    : 'text-neutral-950 hover:bg-gray-50'
+                  location.pathname === "/ai-tutor"
+                    ? "bg-[#030213] text-white"
+                    : "text-neutral-950 hover:bg-gray-50"
                 }`}
+                to="/ai-tutor"
               >
                 <Brain className="w-4 h-4" />
                 <span className="text-sm font-normal">AI Tutor</span>
               </Link>
-              <button className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50">
+              <Link
+                className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50"
+                to="/profile"
+              >
                 <User className="w-4 h-4" />
                 <span className="text-sm font-normal">Profile</span>
-              </button>
+              </Link>
             </>
           )}
         </nav>

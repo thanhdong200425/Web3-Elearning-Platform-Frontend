@@ -21,9 +21,24 @@ const StudentProfile: React.FC = () => {
   });
 
   const [courses, setCourses] = useState<CompletedCourse[]>([
-    { id: "1", title: "Blockchain Fundamentals", category: "Blockchain", certificate: true },
-    { id: "2", title: "Smart Contract Development", category: "Programming", certificate: true },
-    { id: "3", title: "React for Beginners", category: "Frontend", certificate: false },
+    {
+      id: "1",
+      title: "Blockchain Fundamentals",
+      category: "Blockchain",
+      certificate: true,
+    },
+    {
+      id: "2",
+      title: "Smart Contract Development",
+      category: "Programming",
+      certificate: true,
+    },
+    {
+      id: "3",
+      title: "React for Beginners",
+      category: "Frontend",
+      certificate: false,
+    },
   ]);
 
   // per-course loading state
@@ -48,15 +63,18 @@ const StudentProfile: React.FC = () => {
         courseTitle: course.title,
         courseId: course.id,
       });
-setCourses((prev: CompletedCourse[]) => {
-  return prev.map((c): CompletedCourse => {
-    if (c.id === courseId) {
-      return { ...c, certificate: true, certificateCid: cid as unknown as string };
-    }
-    return c;
-  });
-});
-
+      setCourses((prev: CompletedCourse[]) => {
+        return prev.map((c): CompletedCourse => {
+          if (c.id === courseId) {
+            return {
+              ...c,
+              certificate: true,
+              certificateCid: cid as unknown as string,
+            };
+          }
+          return c;
+        });
+      });
 
       addToast({
         title: "Certificate Created",
@@ -78,13 +96,21 @@ setCourses((prev: CompletedCourse[]) => {
   return (
     <div className="min-h-screen bg-gray-50 p-10">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">🎓 Student Profile</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">
+          🎓 Student Profile
+        </h1>
 
         <Card className="mb-8 shadow-md border border-gray-200">
           <CardBody className="space-y-2">
-            <p><strong>Name:</strong> {student.name}</p>
-            <p><strong>Email:</strong> {student.email}</p>
-            <p><strong>Wallet Address:</strong> {student.wallet}</p>
+            <p>
+              <strong>Name:</strong> {student.name}
+            </p>
+            <p>
+              <strong>Email:</strong> {student.email}
+            </p>
+            <p>
+              <strong>Wallet Address:</strong> {student.wallet}
+            </p>
           </CardBody>
         </Card>
 
@@ -127,7 +153,9 @@ setCourses((prev: CompletedCourse[]) => {
                         isDisabled={!!generating[course.id]}
                         onPress={() => handleGenerateCertificate(course.id)}
                       >
-                        {generating[course.id] ? "Generating…" : "Generate Certificate"}
+                        {generating[course.id]
+                          ? "Generating…"
+                          : "Generate Certificate"}
                       </Button>
                     )}
                   </>
