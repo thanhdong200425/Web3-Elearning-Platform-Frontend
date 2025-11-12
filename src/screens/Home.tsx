@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { usePublicClient, useReadContract } from 'wagmi';
+import React, { useState, useEffect } from 'react';
+import { useReadContract } from 'wagmi'; 
 import { addToast } from '@heroui/toast';
 import { elearningPlatformABI, elearningPlatformAddress } from '@/contracts/ElearningPlatform';
 import Header from '@/components/Header';
@@ -10,13 +10,15 @@ import AllCoursesSection from '@/components/AllCoursesSection';
 import CategoriesSection from '@/components/CategoriesSection';
 import { categoryOptions } from '../schemas/courseForm';
 
-
-interface Course {
+interface OnChainCourse {
   id: bigint;
   instructor: string;
   price: bigint;
   title: string;
   contentCid: string;
+}
+
+interface Course extends OnChainCourse {
   metadata?: {
     description: string;
     imageCid: string;
@@ -30,90 +32,85 @@ const IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
 const Home: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const publicClient = usePublicClient();
 
-  const { data: nextCourseId, isError: isReadError } = useReadContract({
+  const {
+    data: onChainCourses, 
+    isLoading: isLoadingOnChain,
+    isError: isReadError,
+  } = useReadContract({
     address: elearningPlatformAddress,
     abi: elearningPlatformABI,
-    functionName: 'nextCourseId',
-  }) as { data?: bigint, isError: boolean };
-
-  const fetchCourses = useCallback(async (total: number) => {
-    setLoading(true);
-
-    if (!publicClient) {
-      console.error('⚠️ publicClient is undefined. Ensure WagmiConfig is set up properly.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const coursePromises = Array.from({ length: total }, (_, i) =>
-        publicClient.readContract({
-          address: elearningPlatformAddress,
-          abi: elearningPlatformABI,
-          functionName: 'courses',
-          args: [BigInt(i + 1)],
-        })
-      );
-
-      const courseData = await Promise.all(coursePromises);
-
-      const fetchedCourses = await Promise.all(
-        courseData.map(async (course: any) => {
-          const [id, instructor, price, title, contentCid] = course;
-          let metadata = undefined;
-
-          try {
-            const url = `${IPFS_GATEWAY}${contentCid}/metadata.json`; 
-            const res = await fetch(url);
-            
-            if (res.ok) {
-              metadata = { ...await res.json(), rating: (await res.json()).rating || 4.5 }; 
-            }
-          } catch (err) {
-            console.warn(`⚠️ Lỗi tải metadata từ IPFS (${contentCid}):`, err);
-          }
-          
-          return { id, instructor, price, title, contentCid, metadata };
-        })
-      );
-
-      setCourses(fetchedCourses.filter(Boolean) as Course[]);
-    } catch (err) {
-      console.error('❌ Fetch courses error:', err);
-      addToast({
-        title: 'Lỗi',
-        description: 'Không thể tải khóa học từ blockchain.',
-        color: 'danger',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [publicClient]);
+    functionName: 'getAllCourses', 
+  }) as { data?: OnChainCourse[], isLoading: boolean, isError: boolean };
 
   useEffect(() => {
-    if (nextCourseId && nextCourseId > 1n) {
-      fetchCourses(Number(nextCourseId) - 1);
-    } else {
-      setLoading(false);
-    }
-
-    if (isReadError) {
+    const fetchMetadataAndSetState = async () => {
+      if (isLoadingOnChain) {
+        return; 
+      }
+    
+      // Xử lý lỗi đọc contract
+      if (isReadError) {
+        console.error('❌ Lỗi đọc getAllCourses:', isReadError);
         addToast({
-            title: 'Lỗi Blockchain',
-            description: 'Không thể đọc số lượng khóa học (nextCourseId). Kiểm tra kết nối mạng.',
-            color: 'danger',
+          title: 'Lỗi Blockchain',
+          description: 'Không thể tải danh sách khóa học (getAllCourses).',
+          color: 'danger',
         });
         setLoading(false);
-    }
-  }, [nextCourseId, isReadError, fetchCourses]);
+        return;
+      }
+
+      if (!onChainCourses || onChainCourses.length === 0) {
+        setCourses([]);
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const fetchedCourses = await Promise.all(
+          onChainCourses.map(async (course) => {
+            let metadata = undefined;
+            try {
+              const url = `${IPFS_GATEWAY}${course.contentCid}/metadata.json`;
+              const res = await fetch(url);
+            
+              if (res.ok) {
+                const data = await res.json();
+                metadata = { ...data, rating: data.rating || 4.5 };
+              }
+            } catch (err) {
+              console.warn(`⚠️ Lỗi tải metadata từ IPFS (${course.contentCid}):`, err);
+            }
+            
+            return { ...course, metadata };
+          })
+        );
+
+        setCourses(fetchedCourses.filter(Boolean) as Course[]);
+      } catch (err) {
+        console.error('❌ Lỗi fetch metadata:', err);
+        setCourses(onChainCourses);
+        addToast({
+          title: 'Lỗi',
+          description: 'Không thể tải metadata từ IPFS.',
+          color: 'danger',
+        });
+      } finally {
+        setLoading(false); 
+      }
+    };
+
+    fetchMetadataAndSetState();
+  
+  }, [onChainCourses, isLoadingOnChain, isReadError]); 
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-600">
         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-lg font-medium">Đang tải khóa học từ blockchain...</p>
+        {/* Cập nhật text loading */}
+        <p className="text-lg font-medium">Đang tải khóa học từ blockchain & IPFS...</p>
       </div>
     );
   }
