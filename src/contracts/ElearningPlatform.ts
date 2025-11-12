@@ -1,5 +1,5 @@
 export const elearningPlatformAddress =
-    "0x7d05A7822074c0421e883bD58403DC5EEA58a947";
+    "0x6C248d2Dd481f768aca7F5DA05FBdaafdF058310";
 
 export const elearningPlatformABI = [
     {
@@ -133,7 +133,7 @@ export const elearningPlatformABI = [
     },
     {
       "inputs": [],
-      "name": "getAllCourses",
+      "name": "getAllCourse",
       "outputs": [
         {
           "components": [
