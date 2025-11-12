@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { usePublicClient, useReadContract } from "wagmi";
+import React, { useState, useEffect } from "react";
+import { useReadContract } from "wagmi";
 import { addToast } from "@heroui/toast";
 import {
   elearningPlatformABI,
@@ -36,15 +36,22 @@ const Home: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Thêm 'error' để lấy đối tượng lỗi chi tiết từ wagmi
   const {
     data: onChainCourses,
     isLoading: isLoadingOnChain,
     isError: isReadError,
+    error: readError, // <--- Lấy đối tượng lỗi cụ thể
   } = useReadContract({
     address: elearningPlatformAddress,
     abi: elearningPlatformABI,
-    functionName: "getAllCourses",
-  }) as { data?: OnChainCourse[]; isLoading: boolean; isError: boolean };
+    functionName: "getAllCourse",
+  }) as {
+    data?: OnChainCourse[];
+    isLoading: boolean;
+    isError: boolean;
+    error: Error | null; // Cập nhật kiểu dữ liệu cho error
+  };
 
   useEffect(() => {
     const fetchMetadataAndSetState = async () => {
@@ -54,21 +61,25 @@ const Home: React.FC = () => {
 
       // Xử lý lỗi đọc contract
       if (isReadError) {
-        console.error("❌ Lỗi đọc getAllCourses:", isReadError);
+        const errorDescription = readError
+          ? readError.message.split("\n")[0] // Lấy dòng đầu tiên của thông báo lỗi
+          : "Lỗi không xác định khi tải từ Blockchain.";
+
+        console.error("❌ Lỗi đọc getAllCourses:", readError);
+
         addToast({
           title: "Lỗi Blockchain",
-          description: "Không thể tải danh sách khóa học (getAllCourses).",
+          description: `Không thể tải danh sách khóa học: ${errorDescription}`,
           color: "danger",
         });
-        setLoading(false);
 
+        setLoading(false);
         return;
       }
 
       if (!onChainCourses || onChainCourses.length === 0) {
         setCourses([]);
         setLoading(false);
-
         return;
       }
 
@@ -84,7 +95,11 @@ const Home: React.FC = () => {
               if (res.ok) {
                 const data = await res.json();
 
-                metadata = { ...data, rating: data.rating || 4.5 };
+                // Đảm bảo rating là số và có giá trị mặc định
+                metadata = {
+                  ...data,
+                  rating: Number(data.rating) || 4.5,
+                };
               }
             } catch (err) {
               console.warn(
@@ -97,14 +112,18 @@ const Home: React.FC = () => {
           }),
         );
 
+        // TypeScript guard: lọc ra các phần tử không phải là Course (nếu có lỗi logic)
         setCourses(fetchedCourses.filter(Boolean) as Course[]);
       } catch (err) {
         console.error("❌ Lỗi fetch metadata:", err);
-        setCourses(onChainCourses);
+        // Nếu lỗi fetch metadata, vẫn hiển thị các khóa học on-chain nếu có
+        setCourses(
+          onChainCourses.map((c) => ({ ...c, metadata: undefined })),
+        );
         addToast({
           title: "Lỗi",
-          description: "Không thể tải metadata từ IPFS.",
-          color: "danger",
+          description: "Không thể tải metadata từ IPFS. Dữ liệu hiển thị có thể thiếu.",
+          color: "warning",
         });
       } finally {
         setLoading(false);
@@ -112,13 +131,12 @@ const Home: React.FC = () => {
     };
 
     fetchMetadataAndSetState();
-  }, [onChainCourses, isLoadingOnChain, isReadError]);
+  }, [onChainCourses, isLoadingOnChain, isReadError, readError]); // Thêm readError vào dependency array
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-600">
         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-        {/* Cập nhật text loading */}
         <p className="text-lg font-medium">
           Đang tải khóa học từ blockchain & IPFS...
         </p>
@@ -140,7 +158,16 @@ const Home: React.FC = () => {
       ) : (
         <div className="text-center py-20 px-8">
           <p className="text-xl text-gray-600">
-            Chưa có khóa học nào được tạo. Hãy tạo khóa học đầu tiên!
+            {/* Hiển thị thông báo phù hợp khi có lỗi */}
+            {isReadError ? (
+              <>
+                Không thể tải dữ liệu. Vui lòng kiểm tra lại **kết nối mạng** và **địa chỉ contract**.
+              </>
+            ) : (
+              <>
+                Chưa có khóa học nào được tạo. Hãy tạo khóa học đầu tiên!
+              </>
+            )}
           </p>
         </div>
       )}
