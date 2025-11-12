@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { UseFormSetValue, UseFormWatch } from 'react-hook-form';
 import { CourseFormData } from '../schemas/courseForm';
 import { Button } from '@heroui/button';
+import FileUpload from './FileUpload'; // ⬅️ thêm import
 
 interface CourseContentProps {
   setValue: UseFormSetValue<CourseFormData>;
@@ -31,21 +32,21 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
       title: '',
       lessons: [],
     };
-    
+
     const updatedSections = [...sections, newSection];
     setValue('sections', updatedSections);
     setIsAddingSection(true);
   };
 
   const updateSectionTitle = (sectionId: string, title: string) => {
-    const updatedSections = sections.map(section =>
+    const updatedSections = sections.map((section) =>
       section.id === sectionId ? { ...section, title } : section
     );
     setValue('sections', updatedSections);
   };
 
   const deleteSection = (sectionId: string) => {
-    const updatedSections = sections.filter(section => section.id !== sectionId);
+    const updatedSections = sections.filter((section) => section.id !== sectionId);
     setValue('sections', updatedSections);
   };
 
@@ -55,7 +56,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
       title: '',
     };
 
-    const updatedSections = sections.map(section =>
+    const updatedSections = sections.map((section) =>
       section.id === sectionId
         ? { ...section, lessons: [...(section.lessons || []), newLesson] }
         : section
@@ -64,11 +65,11 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
   };
 
   const updateLessonTitle = (sectionId: string, lessonId: string, title: string) => {
-    const updatedSections = sections.map(section =>
+    const updatedSections = sections.map((section) =>
       section.id === sectionId
         ? {
             ...section,
-            lessons: section.lessons?.map(lesson =>
+            lessons: section.lessons?.map((lesson) =>
               lesson.id === lessonId ? { ...lesson, title } : lesson
             ),
           }
@@ -77,12 +78,27 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
     setValue('sections', updatedSections);
   };
 
-  const deleteLesson = (sectionId: string, lessonId: string) => {
-    const updatedSections = sections.map(section =>
+  // ⬇️ bổ sung: cập nhật nội dung text cho lesson (không ảnh hưởng UI cũ)
+  const updateLessonContent = (sectionId: string, lessonId: string, content: string) => {
+    const updatedSections = sections.map((section) =>
       section.id === sectionId
         ? {
             ...section,
-            lessons: section.lessons?.filter(lesson => lesson.id !== lessonId),
+            lessons: section.lessons?.map((lesson) =>
+              lesson.id === lessonId ? { ...lesson, content } : lesson
+            ),
+          }
+        : section
+    );
+    setValue('sections', updatedSections);
+  };
+
+  const deleteLesson = (sectionId: string, lessonId: string) => {
+    const updatedSections = sections.map((section) =>
+      section.id === sectionId
+        ? {
+            ...section,
+            lessons: section.lessons?.filter((lesson) => lesson.id !== lessonId),
           }
         : section
     );
@@ -171,34 +187,106 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
 
                 {/* Lessons */}
                 {section.lessons && section.lessons.length > 0 && (
-                  <div className="ml-4 space-y-2">
-                    {section.lessons.map((lesson, lessonIndex) => (
-                      <div
-                        key={lesson.id}
-                        className="bg-white border border-gray-200 rounded-lg p-3 flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-gray-500">
-                            {sectionIndex + 1}.{lessonIndex + 1}
-                          </span>
-                          <input
-                            type="text"
-                            placeholder="Enter lesson title"
-                            value={lesson.title}
-                            onChange={(e) => updateLessonTitle(section.id, lesson.id, e.target.value)}
-                            className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-950 placeholder-gray-400"
-                          />
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="light"
-                          onPress={() => deleteLesson(section.id, lesson.id)}
-                          className="text-xs text-red-600 hover:text-red-700"
+                  <div className="ml-4 space-y-3">
+                    {section.lessons.map((lesson, lessonIndex) => {
+                      // lấy ipfs url/cid nếu đã upload xong (được FileUpload set vào form)
+                      const ipfsCid =
+                        (lesson as any)?.fileIpfsCid ?? undefined;
+                      const ipfsUrl =
+                        (lesson as any)?.fileUrl ?? undefined;
+
+                      return (
+                        <div
+                          key={lesson.id}
+                          className="bg-white border border-gray-200 rounded-lg p-3"
                         >
-                          Delete
-                        </Button>
-                      </div>
-                    ))}
+                          {/* Hàng tiêu đề + delete */}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 flex-1">
+                              <span className="text-xs text-gray-500">
+                                {sectionIndex + 1}.{lessonIndex + 1}
+                              </span>
+                              <input
+                                type="text"
+                                placeholder="Enter lesson title"
+                                value={lesson.title}
+                                onChange={(e) =>
+                                  updateLessonTitle(section.id, lesson.id, e.target.value)
+                                }
+                                className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-950 placeholder-gray-400"
+                              />
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="light"
+                              onPress={() => deleteLesson(section.id, lesson.id)}
+                              className="text-xs text-red-600 hover:text-red-700"
+                            >
+                              Delete
+                            </Button>
+                          </div>
+
+                          {/* Nội dung & Upload asset */}
+                          <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* Text content (optional) */}
+                            <div className="flex flex-col">
+                              <label className="text-xs font-medium text-neutral-950 mb-1">
+                                Lesson Content (optional)
+                              </label>
+                              <textarea
+                                value={lesson.content ?? ''}
+                                onChange={(e) =>
+                                  updateLessonContent(
+                                    section.id,
+                                    lesson.id,
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Short description, links, notes…"
+                                className="min-h-[96px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30"
+                              />
+                            </div>
+
+                            {/* Upload asset -> IPFS */}
+                            <div className="flex flex-col">
+                              <FileUpload
+                                name={`sections.${sectionIndex}.lessons.${lessonIndex}.file`}
+                                setValue={setValue as any}
+                                accept="video/*,application/pdf,application/zip"
+                                isRequired={false}
+                                className="w-full"
+                              />
+
+                              {/* Chip trạng thái IPFS (nếu có) */}
+                              {(ipfsCid || ipfsUrl) && (
+                                <div className="mt-2 text-xs text-green-700">
+                                  Uploaded to IPFS:&nbsp;
+                                  {ipfsCid && (
+                                    <span className="font-medium break-all">
+                                      CID: {ipfsCid}
+                                    </span>
+                                  )}
+                                  {ipfsUrl && (
+                                    <>
+                                      {' '}
+                                      —{' '}
+                                      <a
+                                        href={ipfsUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="underline"
+                                      >
+                                        Open
+                                      </a>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
