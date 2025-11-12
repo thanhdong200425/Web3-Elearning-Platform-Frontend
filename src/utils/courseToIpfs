@@ -1,0 +1,52 @@
+// src/utils/courseToIpfs.ts
+import { uploadJsonToIPFS } from './pinata';
+import type { CourseFormData } from '../schemas/courseForm';
+
+export type CourseIpfsMeta = {
+  title: string;
+  shortDescription: string;
+  detailedDescription?: string | null;
+  category: string;
+  coverImage?: { cid: string; url: string } | null;
+  sections?: Array<{
+    id: string;
+    title: string;
+    lessons?: Array<{
+      id: string;
+      title: string;
+      content?: string;
+      asset?: { cid: string; url: string } | null;
+    }>;
+  }>;
+  pricing: { token: string; price: number };
+  version: 'v1';
+};
+
+export async function buildAndUploadCourseMetadata(form: CourseFormData) {
+  const meta: CourseIpfsMeta = {
+    title: form.title,
+    shortDescription: form.shortDescription,
+    detailedDescription: form.detailedDescription ?? null,
+    category: form.category,
+    coverImage: (form as any).coverImageIpfsCid
+      ? { cid: (form as any).coverImageIpfsCid, url: (form as any).coverImageUrl }
+      : null,
+    sections: form.sections?.map(s => ({
+      id: s.id,
+      title: s.title,
+      lessons: s.lessons?.map(l => ({
+        id: l.id,
+        title: l.title,
+        content: l.content,
+        asset: (l as any).fileIpfsCid
+          ? { cid: (l as any).fileIpfsCid, url: (l as any).fileUrl }
+          : null,
+      })),
+    })),
+    pricing: { token: form.paymentToken, price: form.coursePrice },
+    version: 'v1',
+  };
+
+  const { cid, url } = await uploadJsonToIPFS(meta);
+  return { courseCid: cid, courseUrl: url, meta };
+}
