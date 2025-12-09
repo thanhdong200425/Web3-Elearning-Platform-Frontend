@@ -94,7 +94,9 @@ const AddCourse: React.FC = () => {
   const coursePrice = watch("coursePrice") || 0;
 
   const onSubmit = async (data: CourseFormData) => {
+    console.log("onSubmit called with data:", data);
     try {
+      console.log("Calling writeContract...");
       writeContract({
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
@@ -105,6 +107,7 @@ const AddCourse: React.FC = () => {
           "bafybeigdyrzt5sfp7udh766prysmz3lksqjvh56bn32lbcehtfgs2xs7iy6yv4oibutq6aieaq36f",
         ],
       });
+      console.log("writeContract called successfully");
     } catch (error) {
       console.error("Deployment failed:", error);
       addToast({
@@ -126,7 +129,12 @@ const AddCourse: React.FC = () => {
   };
 
   const handleDeploy = async () => {
-    handleSubmit(onSubmit)();
+    console.log("handleDeploy clicked");
+    console.log("Form errors:", errors);
+    console.log("Form is valid:", isValid);
+    await handleSubmit(onSubmit, (errors) => {
+      console.error("Form validation errors:", errors);
+    })();
   };
 
   const handleBack = () => {

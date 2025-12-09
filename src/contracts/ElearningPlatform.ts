@@ -1,8 +1,8 @@
 export const elearningPlatformAddress =
-    "0x6C248d2Dd481f768aca7F5DA05FBdaafdF058310";
+    "0xA8b39ADB26469FbAd08CfB813c34ac1c0c74F09b";
 
 export const elearningPlatformABI = [
-    {
+        {
       "inputs": [
         {
           "internalType": "address",
@@ -58,6 +58,25 @@ export const elearningPlatformABI = [
           "internalType": "contract ICertificateNFT",
           "name": "",
           "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "courseIds",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",

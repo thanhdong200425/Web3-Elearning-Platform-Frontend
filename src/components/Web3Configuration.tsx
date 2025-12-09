@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { UseFormRegister, FieldErrors } from 'react-hook-form';
 import { CourseFormData, tokenOptions } from '../schemas/courseForm';
 import { Input } from '@heroui/input';
@@ -26,11 +26,16 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
 
-  const handleConnectWallet = () => {
-    connect({ connector: injected() })
-    if (address && setValue) {
+  // Auto-update walletAddress when wallet connects
+  useEffect(() => {
+    if (address && setValue && isConnected) {
+      console.log("Setting walletAddress to:", address);
       setValue('walletAddress', address);
     }
+  }, [address, isConnected, setValue]);
+
+  const handleConnectWallet = () => {
+    connect({ connector: injected() })
   }
 
   const handleDisconnectWallet = () => {
