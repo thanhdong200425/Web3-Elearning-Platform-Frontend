@@ -15,7 +15,9 @@
     "test": "hardhat test --config hardhat.config.cjs"
   },
   "dependencies": {
+    "@google/genai": "^1.29.0",
     "@heroui/button": "^2.2.27",
+    "@heroui/card": "^2.2.25",
     "@heroui/code": "2.2.21",
     "@heroui/dropdown": "2.3.27",
     "@heroui/input": "^2.4.28",
@@ -38,6 +40,7 @@
     "@tailwindcss/vite": "4.1.11",
     "@tanstack/react-query": "^5.90.5",
     "buffer": "^6.0.3",
+    "axios": "^1.13.1",
     "clsx": "2.1.1",
     "framer-motion": "11.18.2",
     "lucide-react": "^0.552.0",
@@ -50,7 +53,8 @@
     "tailwindcss": "4.1.11",
     "viem": "^2.38.4",
     "wagmi": "^2.19.0",
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",

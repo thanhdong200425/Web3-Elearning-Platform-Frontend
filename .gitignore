@@ -38,3 +38,9 @@ coverage
 
 # nyc test coverage
 .nyc_output
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+bun.lockb
+
+.env

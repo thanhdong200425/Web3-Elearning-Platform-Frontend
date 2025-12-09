@@ -1,54 +1,55 @@
 export const elearningPlatformAddress =
     "0xb1E592EEaCBBf221B95A2cEF4dddA5e8D62E994A";
+    "0x6C248d2Dd481f768aca7F5DA05FBdaafdF058310";
 
 export const elearningPlatformABI = [
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "certificateNFTAddress",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "certificateNFTAddress",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
     },
     {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "uint256",
-                "name": "courseId",
-                "type": "uint256"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "instructor",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "string",
-                "name": "title",
-                "type": "string"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "price",
-                "type": "uint256"
-            },
-            {
-                "indexed": false,
-                "internalType": "string",
-                "name": "contentCid",
-                "type": "string"
-            }
-        ],
-        "name": "CourseCreated",
-        "type": "event"
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "courseId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "instructor",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "contentCid",
+          "type": "string"
+        }
+      ],
+      "name": "CourseCreated",
+      "type": "event"
     },
     {
         "anonymous": false,
@@ -87,74 +88,125 @@ export const elearningPlatformABI = [
         ],
         "stateMutability": "view",
         "type": "function"
+      "inputs": [],
+      "name": "certificateNFT",
+      "outputs": [
+        {
+          "internalType": "contract ICertificateNFT",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "name": "courses",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "id",
-                "type": "uint256"
-            },
-            {
-                "internalType": "address",
-                "name": "instructor",
-                "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "price",
-                "type": "uint256"
-            },
-            {
-                "internalType": "string",
-                "name": "title",
-                "type": "string"
-            },
-            {
-                "internalType": "string",
-                "name": "contentCid",
-                "type": "string"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "courses",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "id",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "instructor",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "contentCid",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
-        "inputs": [
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        },
+        {
+          "internalType": "string",
+          "name": "contentCid",
+          "type": "string"
+        }
+      ],
+      "name": "createCourse",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "courseId",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getAllCourse",
+      "outputs": [
+        {
+          "components": [
             {
-                "internalType": "string",
-                "name": "title",
-                "type": "string"
+              "internalType": "uint256",
+              "name": "id",
+              "type": "uint256"
             },
             {
-                "internalType": "uint256",
-                "name": "price",
-                "type": "uint256"
+              "internalType": "address",
+              "name": "instructor",
+              "type": "address"
             },
             {
-                "internalType": "string",
-                "name": "contentCid",
-                "type": "string"
-            }
-        ],
-        "name": "createCourse",
-        "outputs": [
+              "internalType": "uint256",
+              "name": "price",
+              "type": "uint256"
+            },
             {
-                "internalType": "uint256",
-                "name": "courseId",
-                "type": "uint256"
+              "internalType": "string",
+              "name": "title",
+              "type": "string"
+            },
+            {
+              "internalType": "string",
+              "name": "contentCid",
+              "type": "string"
             }
-        ],
-        "stateMutability": "nonpayable",
-        "type": "function"
+          ],
+          "internalType": "struct ElearningPlatform.Course[]",
+          "name": "",
+          "type": "tuple[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     },
     {
         "inputs": [],
@@ -291,5 +343,16 @@ export const elearningPlatformABI = [
         ],
         "stateMutability": "view",
         "type": "function"
+      "inputs": [],
+      "name": "nextCourseId",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
     }
 ] as const;

@@ -1,6 +1,19 @@
-import React, { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Input } from "@heroui/input";
+import { Textarea } from "@heroui/input";
+import { Button } from "@heroui/button";
+import { Select, SelectItem } from "@heroui/select";
+import { useWriteContract } from "wagmi";
+import { parseEther } from "viem";
+import { addToast } from "@heroui/toast";
+
+import FileUpload from "../components/FileUpload";
+import StepIndicator from "../components/StepIndicator";
+import Web3Configuration from "../components/Web3Configuration";
+import CourseContent from "../components/CourseContent";
+import CoursePreview from "../components/CoursePreview";
 import {
   courseFormSchema,
   CourseFormData,
@@ -21,7 +34,13 @@ import { elearningPlatformABI, elearningPlatformAddress } from '@/contracts/Elea
 import { parseEther } from 'viem';
 import { addToast } from '@heroui/toast';
 import { uploadCourseContent, uploadCourseImage, uploadCourseMetadata } from '@/services/ipfs';
+} from "../schemas/courseForm";
 
+import BackButton from "@/components/buttons/BackButton";
+import {
+  elearningPlatformABI,
+  elearningPlatformAddress,
+} from "@/contracts/ElearningPlatform";
 
 const AddCourse: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -31,25 +50,25 @@ const AddCourse: React.FC = () => {
     return [
       {
         number: 1,
-        title: 'Basic Information',
+        title: "Basic Information",
         isActive: currentStep === 1,
         isCompleted: currentStep > 1,
       },
       {
         number: 2,
-        title: 'Web3 & Pricing Configuration',
+        title: "Web3 & Pricing Configuration",
         isActive: currentStep === 2,
         isCompleted: currentStep > 2,
       },
       {
         number: 3,
-        title: 'Course Content & IPFS Upload',
+        title: "Course Content & IPFS Upload",
         isActive: currentStep === 3,
         isCompleted: currentStep > 3,
       },
       {
         number: 4,
-        title: 'Preview & Publish (Deploy)',
+        title: "Preview & Publish (Deploy)",
         isActive: currentStep === 4,
         isCompleted: false,
       },
@@ -65,26 +84,32 @@ const AddCourse: React.FC = () => {
   } = useForm<CourseFormData>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
-      title: '',
-      shortDescription: '',
-      detailedDescription: '',
-      category: '',
+      title: "",
+      shortDescription: "",
+      detailedDescription: "",
+      category: "",
       coverImage: undefined,
-      paymentToken: 'USDC',
+      paymentToken: "USDC",
       coursePrice: 0,
-      walletAddress: '',
+      walletAddress: "",
       sections: [],
     },
   });
 
   const { data: hash, writeContract, isPending, isSuccess, error: writeError } = useWriteContract();
   const { isConnected } = useAccount();
+  const {
+    data: hash,
+    writeContract,
+    isPending,
+    isSuccess,
+  } = useWriteContract();
 
   const defaultLabelClassNames = useMemo(() => {
-    return 'text-sm font-medium text-neutral-950';
+    return "text-sm font-medium text-neutral-950";
   }, []);
 
-  const coursePrice = watch('coursePrice') || 0;
+  const coursePrice = watch("coursePrice") || 0;
 
   // Handle write errors
   React.useEffect(() => {
@@ -222,7 +247,7 @@ const AddCourse: React.FC = () => {
       writeContract({
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
-        functionName: 'createCourse',
+        functionName: "createCourse",
         args: [
           data.title,
           parseEther(data.coursePrice.toString()),
@@ -240,6 +265,20 @@ const AddCourse: React.FC = () => {
         timeout: 5000,
         shouldShowTimeoutProgress: true,
       });
+          "bafybeigdyrzt5sfp7udh766prysmz3lksqjvh56bn32lbcehtfgs2xs7iy6yv4oibutq6aieaq36f",
+        ],
+      });
+    } catch (error) {
+      console.error("Deployment failed:", error);
+      addToast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      throw new Error(error as string);
     }
   };
 
@@ -275,8 +314,8 @@ const AddCourse: React.FC = () => {
         {/* Left Sidebar */}
         <StepIndicator
           currentStep={currentStep}
-          totalSteps={totalSteps}
           steps={steps}
+          totalSteps={totalSteps}
         />
 
         {/* Main Content */}
@@ -301,38 +340,40 @@ const AddCourse: React.FC = () => {
                     {/* Course Title */}
                     <div className="flex flex-col gap-1.5">
                       <Input
-                        {...register('title')}
-                        label="Course Title"
-                        placeholder="Enter course title (max 80 chars)"
-                        labelPlacement='outside-top'
-                        maxLength={80}
+                        {...register("title")}
                         isRequired
-                        isInvalid={!!errors.title}
-                        errorMessage={errors.title?.message}
                         classNames={{
                           input: "bg-gray-100 border-0 rounded-lg",
-                          inputWrapper: "bg-gray-100 border-0 rounded-lg px-3 py-2",
+                          inputWrapper:
+                            "bg-gray-100 border-0 rounded-lg px-3 py-2",
                           label: defaultLabelClassNames,
                         }}
+                        errorMessage={errors.title?.message}
+                        isInvalid={!!errors.title}
+                        label="Course Title"
+                        labelPlacement="outside-top"
+                        maxLength={80}
+                        placeholder="Enter course title (max 80 chars)"
                       />
                     </div>
 
                     {/* Short Description */}
                     <div className="flex flex-col gap-1.5">
                       <Textarea
-                        label="Short Description"
-                        placeholder="Enter a brief description (max 250 chars)"
                         isRequired
-                        labelPlacement='outside-top'
-                        {...register('shortDescription')}
-                        isInvalid={!!errors.shortDescription}
-                        errorMessage={errors.shortDescription?.message}
-                        rows={3}
+                        label="Short Description"
+                        labelPlacement="outside-top"
+                        placeholder="Enter a brief description (max 250 chars)"
+                        {...register("shortDescription")}
                         classNames={{
                           input: "bg-gray-100 border-0 rounded-lg",
-                          inputWrapper: "bg-gray-100 border-0 rounded-lg px-3 py-2",
+                          inputWrapper:
+                            "bg-gray-100 border-0 rounded-lg px-3 py-2",
                           label: defaultLabelClassNames,
                         }}
+                        errorMessage={errors.shortDescription?.message}
+                        isInvalid={!!errors.shortDescription}
+                        rows={3}
                       />
                     </div>
 
@@ -341,33 +382,34 @@ const AddCourse: React.FC = () => {
                       <Textarea
                         label="Detailed Description"
                         placeholder="Provide detailed course information and objectives"
-                        {...register('detailedDescription')}
-                        isInvalid={!!errors.detailedDescription}
-                        errorMessage={errors.detailedDescription?.message}
-                        rows={3}
-                        labelPlacement='outside-top'
+                        {...register("detailedDescription")}
                         classNames={{
                           input: "bg-gray-100 border-0 rounded-lg",
-                          inputWrapper: "bg-gray-100 border-0 rounded-lg px-3 py-2",
+                          inputWrapper:
+                            "bg-gray-100 border-0 rounded-lg px-3 py-2",
                           label: defaultLabelClassNames,
                         }}
+                        errorMessage={errors.detailedDescription?.message}
+                        isInvalid={!!errors.detailedDescription}
+                        labelPlacement="outside-top"
+                        rows={3}
                       />
                     </div>
 
                     {/* Category */}
                     <div className="flex flex-col gap-1.5">
                       <Select
+                        isRequired
                         label="Category"
                         placeholder="Select category"
-                        isRequired
-                        {...register('category')}
-                        isInvalid={!!errors.category}
-                        errorMessage={errors.category?.message}
-                        labelPlacement='outside'
+                        {...register("category")}
                         classNames={{
                           trigger: "bg-gray-100 border-0 rounded-lg px-3 py-2",
                           label: defaultLabelClassNames,
                         }}
+                        errorMessage={errors.category?.message}
+                        isInvalid={!!errors.category}
+                        labelPlacement="outside"
                       >
                         {categoryOptions.map((option) => (
                           <SelectItem key={option.value}>
@@ -379,11 +421,11 @@ const AddCourse: React.FC = () => {
 
                     {/* File Upload */}
                     <FileUpload
-                      setValue={setValue}
-                      name="coverImage"
-                      error={errors.coverImage}
                       accept="image/*"
+                      error={errors.coverImage}
                       isRequired={false}
+                      name="coverImage"
+                      setValue={setValue}
                     />
                   </div>
                 </>
@@ -391,25 +433,22 @@ const AddCourse: React.FC = () => {
 
               {currentStep === 2 && (
                 <Web3Configuration
-                  register={register}
-                  errors={errors}
                   coursePrice={coursePrice}
+                  errors={errors}
+                  register={register}
                   setValue={setValue}
                 />
               )}
 
               {currentStep === 3 && (
-                <CourseContent
-                  setValue={setValue}
-                  watch={watch}
-                />
+                <CourseContent setValue={setValue} watch={watch} />
               )}
 
               {currentStep === 4 && (
                 <CoursePreview
+                  isDeploying={isPending}
                   watch={watch}
                   onDeploy={handleDeploy}
-                  isDeploying={isPending}
                 />
               )}
 
@@ -418,22 +457,22 @@ const AddCourse: React.FC = () => {
                 <div className="border-t border-gray-200 pt-6">
                   <div className="flex justify-between">
                     <Button
-                      variant="bordered"
-                      size="md"
-                      onPress={handleBack}
                       className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50"
                       disabled={currentStep === 1}
+                      size="md"
+                      variant="bordered"
+                      onPress={handleBack}
                     >
                       Back
                     </Button>
                     <Button
-                      variant="solid"
-                      size="md"
-                      onPress={handleNextStep}
-                      disabled={isSubmitting}
                       className="bg-gray-900 rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                      disabled={isSubmitting}
+                      size="md"
+                      variant="solid"
+                      onPress={handleNextStep}
                     >
-                      {isSubmitting ? 'Processing...' : 'Next Step'}
+                      {isSubmitting ? "Processing..." : "Next Step"}
                     </Button>
                   </div>
                 </div>

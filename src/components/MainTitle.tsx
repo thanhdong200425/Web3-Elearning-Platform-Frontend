@@ -1,7 +1,4 @@
 import React from 'react';
-import { useAccount } from 'wagmi';
-import { Link } from 'react-router-dom';
-import { Button } from '@heroui/button';
 
 const MainTitle: React.FC = () => {
   const { isConnected } = useAccount();
@@ -35,6 +32,9 @@ const MainTitle: React.FC = () => {
       </div>
     </section>
   );
+  // MainTitle is now integrated into Header component
+  // This component is kept for backward compatibility but renders nothing
+  return null;
 };
 
 export default MainTitle;

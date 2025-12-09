@@ -6,6 +6,16 @@ import AddCourse from './screens/AddCourse';
 import CourseDetail from './screens/CourseDetail';
 import MyCourses from './screens/MyCourses';
 import CourseViewer from './components/CourseViewer';
+import { HeroUIProvider } from "@heroui/system";
+import { ToastProvider } from "@heroui/toast";
+import { Routes, Route } from "react-router-dom";
+
+import Home from "./screens/Home";
+import AITutor from "./screens/AITutor";
+import AIResult from "./screens/AIResult";
+import StudentProfile from "./screens/StudentProfile";
+import AddCourse from "./screens/AddCourse";
+import Certificate from "./schemas/Certificate";
 
 function App() {
   return (
@@ -17,6 +27,13 @@ function App() {
         <Route path="/course/:courseId" element={<CourseDetail />} />
         <Route path="/course/:courseId/view" element={<CourseViewer />} />
         <Route path="/my-courses" element={<MyCourses />} />
+        <Route element={<Home />} path="/" />
+        <Route element={<AddCourse />} path="/add-course" />
+        <Route element={<AITutor />} path="/ai-tutor" />
+        <Route element={<AIResult />} path="/ai-result" />
+        <Route element={<StudentProfile />} path="/profile" />
+        <Route element={<Certificate />} path="/certificate/:courseId" />
+        <Route element={<Certificate />} path="/certificate/:id" />
       </Routes>
     </HeroUIProvider>
   );

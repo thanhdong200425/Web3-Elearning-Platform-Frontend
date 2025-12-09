@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from '@heroui/button';
 import { ArrowRight } from 'lucide-react';
 import HotReleaseCard from './HotReleaseCard';
 
@@ -19,26 +18,25 @@ interface Course {
 
 const HotReleasesSection: React.FC<{ courses: Course[] }> = ({ courses }) => {
   return (
-    <section className="bg-blue-700 py-16 px-4 md:px-8 text-white">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-10">
-          <div>
-            <h2 className="text-3xl font-bold mb-1">🔥 Hot New Releases</h2>
-            <p className="text-lg opacity-80">
+    <section className="bg-gradient-to-r from-[#155dfc] to-[#2b7fff] py-12 px-8">
+      <div className="max-w-7xl mx-auto flex flex-col gap-6">
+        <div className="flex justify-between items-start">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-normal leading-[30px] text-white">
+              Hot new releases
+            </h2>
+            <p className="text-base font-normal leading-6 text-blue-100">
               Discover the latest courses from top partners
             </p>
           </div>
 
-          <Button className="text-white border-white hover:border-white focus:border-white active:border-white- flex items-center gap-2"
-            variant="ghost"
-            size="md"
-          >
-            View all courses
-            <ArrowRight className="w-5 h-5" />
-          </Button>
+          <button className="bg-[#eceef2] h-9 px-3 rounded-lg flex items-center gap-2 text-[#030213] hover:bg-gray-200 transition-colors">
+            <span className="text-sm font-normal">Explore courses</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="flex gap-4 overflow-x-auto pb-2">
           {courses.map((course) => (
             <HotReleaseCard key={Number(course.id)} course={course} />
           ))}
