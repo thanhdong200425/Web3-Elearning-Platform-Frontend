@@ -36,89 +36,21 @@ const Home: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Thêm 'error' để lấy đối tượng lỗi chi tiết từ wagmi
+  // Read all courses from contract
   const {
     data: onChainCourses,
     isLoading: isLoadingOnChain,
     isError: isReadError,
-    error: readError, // <--- Lấy đối tượng lỗi cụ thể
+    error: readError,
   } = useReadContract({
     address: elearningPlatformAddress,
     abi: elearningPlatformABI,
-    functionName: 'nextCourseId',
-  }) as { data?: bigint, isError: boolean };
-
-  const fetchCourses = useCallback(async (total: number) => {
-    setLoading(true);
-
-    if (!publicClient) {
-      console.error('⚠️ publicClient is undefined. Ensure WagmiConfig is set up properly.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const coursePromises = Array.from({ length: total }, (_, i) =>
-        publicClient.readContract({
-          address: elearningPlatformAddress,
-          abi: elearningPlatformABI,
-          functionName: 'courses',
-          args: [BigInt(i + 1)],
-        })
-      );
-
-      const courseData = await Promise.all(coursePromises);
-
-      const fetchedCourses = await Promise.all(
-        courseData.map(async (course: any) => {
-          const [id, instructor, price, title, contentCid] = course;
-          let metadata = undefined;
-
-          try {
-            // Fetch content.json from IPFS (which contains imageCid)
-            const contentUrl = `${IPFS_GATEWAY}${contentCid}`;
-            const contentRes = await fetch(contentUrl);
-            
-            if (contentRes.ok) {
-              const contentData = await contentRes.json();
-              
-              // Extract imageCid from content.json if available
-              if (contentData.imageCid) {
-                metadata = {
-                  imageCid: contentData.imageCid,
-                  description: contentData.description,
-                  shortDescription: contentData.shortDescription,
-                  category: contentData.category,
-                  rating: contentData.rating || 4.5,
-                };
-              }
-            }
-          } catch (err) {
-            console.warn(`⚠️ Lỗi tải nội dung từ IPFS (${contentCid}):`, err);
-          }
-          
-          return { id, instructor, price, title, contentCid, metadata };
-        })
-      );
-
-      setCourses(fetchedCourses.filter(Boolean) as Course[]);
-    } catch (err) {
-      console.error('❌ Fetch courses error:', err);
-      addToast({
-        title: 'Lỗi',
-        description: 'Không thể tải khóa học từ blockchain.',
-        color: 'danger',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [publicClient]);
     functionName: "getAllCourse",
   }) as {
     data?: OnChainCourse[];
     isLoading: boolean;
     isError: boolean;
-    error: Error | null; // Cập nhật kiểu dữ liệu cho error
+    error: Error | null;
   };
 
   useEffect(() => {
@@ -172,12 +104,12 @@ const Home: React.FC = () => {
             } catch (err) {
               console.warn(
                 `⚠️ Lỗi tải metadata từ IPFS (${course.contentCid}):`,
-                err,
+                err
               );
             }
 
             return { ...course, metadata };
-          }),
+          })
         );
 
         // TypeScript guard: lọc ra các phần tử không phải là Course (nếu có lỗi logic)
@@ -185,12 +117,11 @@ const Home: React.FC = () => {
       } catch (err) {
         console.error("❌ Lỗi fetch metadata:", err);
         // Nếu lỗi fetch metadata, vẫn hiển thị các khóa học on-chain nếu có
-        setCourses(
-          onChainCourses.map((c) => ({ ...c, metadata: undefined })),
-        );
+        setCourses(onChainCourses.map((c) => ({ ...c, metadata: undefined })));
         addToast({
           title: "Lỗi",
-          description: "Không thể tải metadata từ IPFS. Dữ liệu hiển thị có thể thiếu.",
+          description:
+            "Không thể tải metadata từ IPFS. Dữ liệu hiển thị có thể thiếu.",
           color: "warning",
         });
       } finally {
@@ -229,12 +160,11 @@ const Home: React.FC = () => {
             {/* Hiển thị thông báo phù hợp khi có lỗi */}
             {isReadError ? (
               <>
-                Không thể tải dữ liệu. Vui lòng kiểm tra lại **kết nối mạng** và **địa chỉ contract**.
+                Không thể tải dữ liệu. Vui lòng kiểm tra lại **kết nối mạng** và
+                **địa chỉ contract**.
               </>
             ) : (
-              <>
-                Chưa có khóa học nào được tạo. Hãy tạo khóa học đầu tiên!
-              </>
+              <>Chưa có khóa học nào được tạo. Hãy tạo khóa học đầu tiên!</>
             )}
           </p>
         </div>

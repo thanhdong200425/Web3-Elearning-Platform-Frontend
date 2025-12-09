@@ -1,42 +1,30 @@
 import React, { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  courseFormSchema,
+  CourseFormData,
+  categoryOptions,
+} from "../schemas/courseForm";
 import { Input } from "@heroui/input";
 import { Textarea } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Select, SelectItem } from "@heroui/select";
-import { useWriteContract } from "wagmi";
-import { parseEther } from "viem";
-import { addToast } from "@heroui/toast";
-
 import FileUpload from "../components/FileUpload";
 import StepIndicator from "../components/StepIndicator";
 import Web3Configuration from "../components/Web3Configuration";
 import CourseContent from "../components/CourseContent";
 import CoursePreview from "../components/CoursePreview";
-import {
-  courseFormSchema,
-  CourseFormData,
-  categoryOptions,
-} from '../schemas/courseForm';
-import { Input } from '@heroui/input';
-import { Textarea } from '@heroui/input';
-import { Button } from "@heroui/button";
-import { Select, SelectItem } from "@heroui/select";
-import FileUpload from '../components/FileUpload';
-import StepIndicator from '../components/StepIndicator';
-import Web3Configuration from '../components/Web3Configuration';
-import CourseContent from '../components/CourseContent';
-import CoursePreview from '../components/CoursePreview';
-import BackButton from '@/components/buttons/BackButton';
-import { useWriteContract, useAccount } from 'wagmi';
-import { elearningPlatformABI, elearningPlatformAddress } from '@/contracts/ElearningPlatform';
-import { parseEther } from 'viem';
-import { addToast } from '@heroui/toast';
-import { uploadCourseContent, uploadCourseImage, uploadCourseMetadata } from '@/services/ipfs';
-} from "../schemas/courseForm";
-
 import BackButton from "@/components/buttons/BackButton";
+import { useWriteContract, useAccount } from "wagmi";
+import { parseEther } from "viem";
+import { addToast } from "@heroui/toast";
+import {
+  uploadCourseContent,
+  uploadCourseImage,
+  uploadCourseMetadata,
+} from "@/services/ipfs";
+
 import {
   elearningPlatformABI,
   elearningPlatformAddress,
@@ -96,14 +84,14 @@ const AddCourse: React.FC = () => {
     },
   });
 
-  const { data: hash, writeContract, isPending, isSuccess, error: writeError } = useWriteContract();
-  const { isConnected } = useAccount();
   const {
     data: hash,
     writeContract,
     isPending,
     isSuccess,
+    error: writeError,
   } = useWriteContract();
+  const { isConnected } = useAccount();
 
   const defaultLabelClassNames = useMemo(() => {
     return "text-sm font-medium text-neutral-950";
@@ -114,11 +102,13 @@ const AddCourse: React.FC = () => {
   // Handle write errors
   React.useEffect(() => {
     if (writeError) {
-      console.error('Deployment failed:', writeError);
+      console.error("Deployment failed:", writeError);
       addToast({
         title: "Error",
-        description: writeError.message || 'Failed to deploy course. Please check your wallet connection and try again.',
-        color: 'danger',
+        description:
+          writeError.message ||
+          "Failed to deploy course. Please check your wallet connection and try again.",
+        color: "danger",
         timeout: 5000,
         shouldShowTimeoutProgress: true,
       });
@@ -131,7 +121,7 @@ const AddCourse: React.FC = () => {
       addToast({
         title: "Success",
         description: `Course deployed successfully! Transaction hash: ${hash.substring(0, 10)}...`,
-        color: 'success',
+        color: "success",
         timeout: 5000,
         shouldShowTimeoutProgress: true,
       });
@@ -144,7 +134,7 @@ const AddCourse: React.FC = () => {
       addToast({
         title: "Wallet Not Connected",
         description: "Please connect your wallet before deploying the course.",
-        color: 'danger',
+        color: "danger",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
@@ -155,8 +145,9 @@ const AddCourse: React.FC = () => {
     if (!data.title || !data.coursePrice || data.coursePrice <= 0) {
       addToast({
         title: "Validation Error",
-        description: "Please fill in all required fields including course title and price.",
-        color: 'danger',
+        description:
+          "Please fill in all required fields including course title and price.",
+        color: "danger",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
@@ -167,8 +158,9 @@ const AddCourse: React.FC = () => {
     if (!data.sections || data.sections.length === 0) {
       addToast({
         title: "Validation Error",
-        description: "Please add at least one section with lessons before deploying.",
-        color: 'danger',
+        description:
+          "Please add at least one section with lessons before deploying.",
+        color: "danger",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
@@ -180,13 +172,13 @@ const AddCourse: React.FC = () => {
       addToast({
         title: "Uploading to IPFS",
         description: "Đang upload nội dung khóa học lên IPFS...",
-        color: 'default',
+        color: "default",
         timeout: 10000,
         shouldShowTimeoutProgress: true,
       });
 
-      console.log('📤 Starting IPFS upload process...');
-      console.log('📋 Course data:', {
+      console.log("📤 Starting IPFS upload process...");
+      console.log("📋 Course data:", {
         title: data.title,
         sectionsCount: data.sections?.length || 0,
         hasImage: !!data.coverImage,
@@ -199,21 +191,27 @@ const AddCourse: React.FC = () => {
           addToast({
             title: "Uploading Image",
             description: "Đang upload hình ảnh khóa học...",
-            color: 'default',
+            color: "default",
             timeout: 5000,
             shouldShowTimeoutProgress: true,
           });
           imageCid = await uploadCourseImage(data.coverImage);
-          console.log('✅ Course image uploaded. CID:', imageCid);
+          console.log("✅ Course image uploaded. CID:", imageCid);
         } catch (imageError) {
-          console.warn('⚠️ Failed to upload image, continuing without image:', imageError);
+          console.warn(
+            "⚠️ Failed to upload image, continuing without image:",
+            imageError
+          );
           // Continue without image if upload fails
         }
       }
 
       // Step 2: Upload course content (sections and lessons) with imageCid included
-      const contentCid = await uploadCourseContent(data.sections || [], imageCid);
-      console.log('✅ Course content uploaded. CID:', contentCid);
+      const contentCid = await uploadCourseContent(
+        data.sections || [],
+        imageCid
+      );
+      console.log("✅ Course content uploaded. CID:", contentCid);
 
       // Step 3: Upload metadata (optional, for better organization)
       let metadataCid: string | undefined;
@@ -227,9 +225,12 @@ const AddCourse: React.FC = () => {
           rating: 0, // Default rating
         };
         metadataCid = await uploadCourseMetadata(metadata);
-        console.log('✅ Course metadata uploaded. CID:', metadataCid);
+        console.log("✅ Course metadata uploaded. CID:", metadataCid);
       } catch (metadataError) {
-        console.warn('⚠️ Failed to upload metadata, continuing with content CID only:', metadataError);
+        console.warn(
+          "⚠️ Failed to upload metadata, continuing with content CID only:",
+          metadataError
+        );
         // Continue with content CID only
       }
 
@@ -237,7 +238,7 @@ const AddCourse: React.FC = () => {
       addToast({
         title: "Deploying to Blockchain",
         description: "Đang deploy khóa học lên blockchain...",
-        color: 'default',
+        color: "default",
         timeout: 30000,
         shouldShowTimeoutProgress: true,
       });
@@ -251,34 +252,21 @@ const AddCourse: React.FC = () => {
         args: [
           data.title,
           parseEther(data.coursePrice.toString()),
-          contentCid  // ✅ Sử dụng CID thực tế từ IPFS upload
-        ]
-      });
-
-      console.log('✅ Course deployment initiated with CID:', contentCid);
-    } catch (error) {
-      console.error('❌ Deployment failed:', error);
-      addToast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-        color: 'danger',
-        timeout: 5000,
-        shouldShowTimeoutProgress: true,
-      });
-          "bafybeigdyrzt5sfp7udh766prysmz3lksqjvh56bn32lbcehtfgs2xs7iy6yv4oibutq6aieaq36f",
+          contentCid, // ✅ Sử dụng CID thực tế từ IPFS upload
         ],
       });
+
+      console.log("✅ Course deployment initiated with CID:", contentCid);
     } catch (error) {
-      console.error("Deployment failed:", error);
+      console.error("❌ Deployment failed:", error);
       addToast({
         title: "Error",
         description:
           error instanceof Error ? error.message : "An unknown error occurred",
         color: "danger",
-        timeout: 3000,
+        timeout: 5000,
         shouldShowTimeoutProgress: true,
       });
-      throw new Error(error as string);
     }
   };
 
@@ -293,7 +281,7 @@ const AddCourse: React.FC = () => {
       addToast({
         title: "Wallet Not Connected",
         description: "Please connect your wallet in Step 2 before deploying.",
-        color: 'danger',
+        color: "danger",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
