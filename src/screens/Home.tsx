@@ -45,6 +45,74 @@ const Home: React.FC = () => {
   } = useReadContract({
     address: elearningPlatformAddress,
     abi: elearningPlatformABI,
+    functionName: 'nextCourseId',
+  }) as { data?: bigint, isError: boolean };
+
+  const fetchCourses = useCallback(async (total: number) => {
+    setLoading(true);
+
+    if (!publicClient) {
+      console.error('⚠️ publicClient is undefined. Ensure WagmiConfig is set up properly.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const coursePromises = Array.from({ length: total }, (_, i) =>
+        publicClient.readContract({
+          address: elearningPlatformAddress,
+          abi: elearningPlatformABI,
+          functionName: 'courses',
+          args: [BigInt(i + 1)],
+        })
+      );
+
+      const courseData = await Promise.all(coursePromises);
+
+      const fetchedCourses = await Promise.all(
+        courseData.map(async (course: any) => {
+          const [id, instructor, price, title, contentCid] = course;
+          let metadata = undefined;
+
+          try {
+            // Fetch content.json from IPFS (which contains imageCid)
+            const contentUrl = `${IPFS_GATEWAY}${contentCid}`;
+            const contentRes = await fetch(contentUrl);
+            
+            if (contentRes.ok) {
+              const contentData = await contentRes.json();
+              
+              // Extract imageCid from content.json if available
+              if (contentData.imageCid) {
+                metadata = {
+                  imageCid: contentData.imageCid,
+                  description: contentData.description,
+                  shortDescription: contentData.shortDescription,
+                  category: contentData.category,
+                  rating: contentData.rating || 4.5,
+                };
+              }
+            }
+          } catch (err) {
+            console.warn(`⚠️ Lỗi tải nội dung từ IPFS (${contentCid}):`, err);
+          }
+          
+          return { id, instructor, price, title, contentCid, metadata };
+        })
+      );
+
+      setCourses(fetchedCourses.filter(Boolean) as Course[]);
+    } catch (err) {
+      console.error('❌ Fetch courses error:', err);
+      addToast({
+        title: 'Lỗi',
+        description: 'Không thể tải khóa học từ blockchain.',
+        color: 'danger',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [publicClient]);
     functionName: "getAllCourse",
   }) as {
     data?: OnChainCourse[];

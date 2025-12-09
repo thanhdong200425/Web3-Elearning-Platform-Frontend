@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { UseFormRegister, FieldErrors } from 'react-hook-form';
 import { CourseFormData, tokenOptions } from '../schemas/courseForm';
 import { Input } from '@heroui/input';
@@ -26,16 +26,23 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
 
-  const handleConnectWallet = () => {
-    connect({ connector: injected() })
+  // Update wallet address in form when connected
+  useEffect(() => {
     if (address && setValue) {
       setValue('walletAddress', address);
     }
-  }
+  }, [address, setValue]);
+
+  const handleConnectWallet = () => {
+    connect({ connector: injected() });
+  };
 
   const handleDisconnectWallet = () => {
     disconnect();
-  }
+    if (setValue) {
+      setValue('walletAddress', '');
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 h-full">
