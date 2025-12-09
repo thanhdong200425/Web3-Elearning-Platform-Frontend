@@ -1,26 +1,30 @@
 import React, { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Input } from "@heroui/input";
-import { Textarea } from "@heroui/input";
-import { Button } from "@heroui/button";
-import { Select, SelectItem } from "@heroui/select";
-import { useWriteContract } from "wagmi";
-import { parseEther } from "viem";
-import { addToast } from "@heroui/toast";
-
-import FileUpload from "../components/FileUpload";
-import StepIndicator from "../components/StepIndicator";
-import Web3Configuration from "../components/Web3Configuration";
-import CourseContent from "../components/CourseContent";
-import CoursePreview from "../components/CoursePreview";
 import {
   courseFormSchema,
   CourseFormData,
   categoryOptions,
 } from "../schemas/courseForm";
-
+import { Input } from "@heroui/input";
+import { Textarea } from "@heroui/input";
+import { Button } from "@heroui/button";
+import { Select, SelectItem } from "@heroui/select";
+import FileUpload from "../components/FileUpload";
+import StepIndicator from "../components/StepIndicator";
+import Web3Configuration from "../components/Web3Configuration";
+import CourseContent from "../components/CourseContent";
+import CoursePreview from "../components/CoursePreview";
 import BackButton from "@/components/buttons/BackButton";
+import { useWriteContract, useAccount } from "wagmi";
+import { parseEther } from "viem";
+import { addToast } from "@heroui/toast";
+import {
+  uploadCourseContent,
+  uploadCourseImage,
+  uploadCourseMetadata,
+} from "@/services/ipfs";
+
 import {
   elearningPlatformABI,
   elearningPlatformAddress,
@@ -64,7 +68,7 @@ const AddCourse: React.FC = () => {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting },
   } = useForm<CourseFormData>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
@@ -85,7 +89,9 @@ const AddCourse: React.FC = () => {
     writeContract,
     isPending,
     isSuccess,
+    error: writeError,
   } = useWriteContract();
+  const { isConnected } = useAccount();
 
   const defaultLabelClassNames = useMemo(() => {
     return "text-sm font-medium text-neutral-950";
@@ -93,10 +99,152 @@ const AddCourse: React.FC = () => {
 
   const coursePrice = watch("coursePrice") || 0;
 
+  // Handle write errors
+  React.useEffect(() => {
+    if (writeError) {
+      console.error("Deployment failed:", writeError);
+      addToast({
+        title: "Error",
+        description:
+          writeError.message ||
+          "Failed to deploy course. Please check your wallet connection and try again.",
+        color: "danger",
+        timeout: 5000,
+        shouldShowTimeoutProgress: true,
+      });
+    }
+  }, [writeError]);
+
+  // Handle success
+  React.useEffect(() => {
+    if (isSuccess && hash) {
+      addToast({
+        title: "Success",
+        description: `Course deployed successfully! Transaction hash: ${hash.substring(0, 10)}...`,
+        color: "success",
+        timeout: 5000,
+        shouldShowTimeoutProgress: true,
+      });
+    }
+  }, [isSuccess, hash]);
+
   const onSubmit = async (data: CourseFormData) => {
-    console.log("onSubmit called with data:", data);
+    // Check if wallet is connected
+    if (!isConnected) {
+      addToast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet before deploying the course.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (!data.title || !data.coursePrice || data.coursePrice <= 0) {
+      addToast({
+        title: "Validation Error",
+        description:
+          "Please fill in all required fields including course title and price.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      return;
+    }
+
+    // Validate course content
+    if (!data.sections || data.sections.length === 0) {
+      addToast({
+        title: "Validation Error",
+        description:
+          "Please add at least one section with lessons before deploying.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      return;
+    }
+
     try {
-      console.log("Calling writeContract...");
+      // Step 1: Upload course content to IPFS
+      addToast({
+        title: "Uploading to IPFS",
+        description: "Đang upload nội dung khóa học lên IPFS...",
+        color: "default",
+        timeout: 10000,
+        shouldShowTimeoutProgress: true,
+      });
+
+      console.log("📤 Starting IPFS upload process...");
+      console.log("📋 Course data:", {
+        title: data.title,
+        sectionsCount: data.sections?.length || 0,
+        hasImage: !!data.coverImage,
+      });
+
+      // Step 1: Upload cover image first if provided (so we can include it in content.json)
+      let imageCid: string | undefined;
+      if (data.coverImage) {
+        try {
+          addToast({
+            title: "Uploading Image",
+            description: "Đang upload hình ảnh khóa học...",
+            color: "default",
+            timeout: 5000,
+            shouldShowTimeoutProgress: true,
+          });
+          imageCid = await uploadCourseImage(data.coverImage);
+          console.log("✅ Course image uploaded. CID:", imageCid);
+        } catch (imageError) {
+          console.warn(
+            "⚠️ Failed to upload image, continuing without image:",
+            imageError
+          );
+          // Continue without image if upload fails
+        }
+      }
+
+      // Step 2: Upload course content (sections and lessons) with imageCid included
+      const contentCid = await uploadCourseContent(
+        data.sections || [],
+        imageCid
+      );
+      console.log("✅ Course content uploaded. CID:", contentCid);
+
+      // Step 3: Upload metadata (optional, for better organization)
+      let metadataCid: string | undefined;
+      try {
+        const metadata = {
+          title: data.title,
+          description: data.detailedDescription || data.shortDescription,
+          shortDescription: data.shortDescription,
+          imageCid: imageCid,
+          category: data.category,
+          rating: 0, // Default rating
+        };
+        metadataCid = await uploadCourseMetadata(metadata);
+        console.log("✅ Course metadata uploaded. CID:", metadataCid);
+      } catch (metadataError) {
+        console.warn(
+          "⚠️ Failed to upload metadata, continuing with content CID only:",
+          metadataError
+        );
+        // Continue with content CID only
+      }
+
+      // Step 4: Deploy to smart contract with real CID
+      addToast({
+        title: "Deploying to Blockchain",
+        description: "Đang deploy khóa học lên blockchain...",
+        color: "default",
+        timeout: 30000,
+        shouldShowTimeoutProgress: true,
+      });
+
+      // Use contentCid as the main CID for the course
+      // This is what will be used to fetch course content
       writeContract({
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
@@ -104,21 +252,21 @@ const AddCourse: React.FC = () => {
         args: [
           data.title,
           parseEther(data.coursePrice.toString()),
-          "bafybeigdyrzt5sfp7udh766prysmz3lksqjvh56bn32lbcehtfgs2xs7iy6yv4oibutq6aieaq36f",
+          contentCid, // ✅ Sử dụng CID thực tế từ IPFS upload
         ],
       });
-      console.log("writeContract called successfully");
+
+      console.log("✅ Course deployment initiated with CID:", contentCid);
     } catch (error) {
-      console.error("Deployment failed:", error);
+      console.error("❌ Deployment failed:", error);
       addToast({
         title: "Error",
         description:
           error instanceof Error ? error.message : "An unknown error occurred",
         color: "danger",
-        timeout: 3000,
+        timeout: 5000,
         shouldShowTimeoutProgress: true,
       });
-      throw new Error(error as string);
     }
   };
 
@@ -129,12 +277,17 @@ const AddCourse: React.FC = () => {
   };
 
   const handleDeploy = async () => {
-    console.log("handleDeploy clicked");
-    console.log("Form errors:", errors);
-    console.log("Form is valid:", isValid);
-    await handleSubmit(onSubmit, (errors) => {
-      console.error("Form validation errors:", errors);
-    })();
+    if (!isConnected) {
+      addToast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet in Step 2 before deploying.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      return;
+    }
+    handleSubmit(onSubmit)();
   };
 
   const handleBack = () => {

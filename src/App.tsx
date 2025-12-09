@@ -1,7 +1,9 @@
 import { HeroUIProvider } from "@heroui/system";
 import { ToastProvider } from "@heroui/toast";
 import { Routes, Route } from "react-router-dom";
-
+import CourseDetail from "./screens/CourseDetail";
+import MyCourses from "./screens/MyCourses";
+import CourseViewer from "./components/CourseViewer";
 import Home from "./screens/Home";
 import AITutor from "./screens/AITutor";
 import AIResult from "./screens/AIResult";
@@ -14,6 +16,9 @@ function App() {
     <HeroUIProvider>
       <ToastProvider placement="top-right" toastOffset={20} />
       <Routes>
+        <Route path="/course/:courseId" element={<CourseDetail />} />
+        <Route path="/course/:courseId/view" element={<CourseViewer />} />
+        <Route path="/my-courses" element={<MyCourses />} />
         <Route element={<Home />} path="/" />
         <Route element={<AddCourse />} path="/add-course" />
         <Route element={<AITutor />} path="/ai-tutor" />

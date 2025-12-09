@@ -1,5 +1,6 @@
-import React from 'react';
-import { Star } from 'lucide-react';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { Star } from "lucide-react";
 
 interface Course {
   id: bigint;
@@ -15,19 +16,27 @@ interface Course {
   };
 }
 
-const IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
+const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 
 const HotReleaseCard: React.FC<{ course: Course }> = ({ course }) => {
+  const navigate = useNavigate();
   const imageUrl = course.metadata?.imageCid
     ? `${IPFS_GATEWAY}${course.metadata.imageCid}`
-    : 'https://via.placeholder.com/320x176';
+    : "https://via.placeholder.com/320x176";
 
   const rating = course.metadata?.rating || 4.5;
-  const instructorName = course.instructor || 'Unknown';
+  const instructorName = course.instructor || "Unknown";
   const firstLetter = instructorName.charAt(0).toUpperCase();
 
+  const handleClick = () => {
+    navigate(`/course/${course.id}`);
+  };
+
   return (
-    <div className="bg-white rounded-[10px] overflow-hidden w-[320px] shrink-0 shadow-sm hover:shadow-md transition-shadow">
+    <div
+      className="bg-white rounded-[10px] overflow-hidden w-[320px] shrink-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      onClick={handleClick}
+    >
       <div className="h-[176px] relative bg-gray-200 overflow-hidden">
         <img
           src={imageUrl}
@@ -35,7 +44,7 @@ const HotReleaseCard: React.FC<{ course: Course }> = ({ course }) => {
           className="w-full h-full object-cover"
         />
       </div>
-      
+
       <div className="p-4 flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <div className="bg-[#155dfc] rounded-[6px] w-5 h-5 flex items-center justify-center shrink-0">
@@ -47,11 +56,11 @@ const HotReleaseCard: React.FC<{ course: Course }> = ({ course }) => {
             {instructorName}
           </p>
         </div>
-        
+
         <h4 className="text-base font-normal leading-6 text-neutral-950 line-clamp-1">
           {course.title}
         </h4>
-        
+
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <Star className="w-4 h-4 fill-neutral-950 text-neutral-950" />
@@ -62,7 +71,9 @@ const HotReleaseCard: React.FC<{ course: Course }> = ({ course }) => {
               (12K)
             </span>
           </div>
-          <span className="text-sm font-normal leading-5 text-[#99a1af]">•</span>
+          <span className="text-sm font-normal leading-5 text-[#99a1af]">
+            •
+          </span>
           <span className="text-sm font-normal leading-5 text-[#4a5565]">
             Beginner
           </span>

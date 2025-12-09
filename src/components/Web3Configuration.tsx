@@ -36,11 +36,17 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
 
   const handleConnectWallet = () => {
     connect({ connector: injected() })
+    if (address && setValue) {
+      setValue('walletAddress', address);
+    }
   }
 
   const handleDisconnectWallet = () => {
     disconnect();
-  }
+    if (setValue) {
+      setValue('walletAddress', '');
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 h-full">

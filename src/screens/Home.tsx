@@ -36,12 +36,12 @@ const Home: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Thêm 'error' để lấy đối tượng lỗi chi tiết từ wagmi
+  // Read all courses from contract
   const {
     data: onChainCourses,
     isLoading: isLoadingOnChain,
     isError: isReadError,
-    error: readError, // <--- Lấy đối tượng lỗi cụ thể
+    error: readError,
   } = useReadContract({
     address: elearningPlatformAddress,
     abi: elearningPlatformABI,
@@ -50,7 +50,7 @@ const Home: React.FC = () => {
     data?: OnChainCourse[];
     isLoading: boolean;
     isError: boolean;
-    error: Error | null; // Cập nhật kiểu dữ liệu cho error
+    error: Error | null;
   };
 
   useEffect(() => {
@@ -104,12 +104,12 @@ const Home: React.FC = () => {
             } catch (err) {
               console.warn(
                 `⚠️ Lỗi tải metadata từ IPFS (${course.contentCid}):`,
-                err,
+                err
               );
             }
 
             return { ...course, metadata };
-          }),
+          })
         );
 
         // TypeScript guard: lọc ra các phần tử không phải là Course (nếu có lỗi logic)
@@ -117,12 +117,11 @@ const Home: React.FC = () => {
       } catch (err) {
         console.error("❌ Lỗi fetch metadata:", err);
         // Nếu lỗi fetch metadata, vẫn hiển thị các khóa học on-chain nếu có
-        setCourses(
-          onChainCourses.map((c) => ({ ...c, metadata: undefined })),
-        );
+        setCourses(onChainCourses.map((c) => ({ ...c, metadata: undefined })));
         addToast({
           title: "Lỗi",
-          description: "Không thể tải metadata từ IPFS. Dữ liệu hiển thị có thể thiếu.",
+          description:
+            "Không thể tải metadata từ IPFS. Dữ liệu hiển thị có thể thiếu.",
           color: "warning",
         });
       } finally {
@@ -161,12 +160,11 @@ const Home: React.FC = () => {
             {/* Hiển thị thông báo phù hợp khi có lỗi */}
             {isReadError ? (
               <>
-                Không thể tải dữ liệu. Vui lòng kiểm tra lại **kết nối mạng** và **địa chỉ contract**.
+                Không thể tải dữ liệu. Vui lòng kiểm tra lại **kết nối mạng** và
+                **địa chỉ contract**.
               </>
             ) : (
-              <>
-                Chưa có khóa học nào được tạo. Hãy tạo khóa học đầu tiên!
-              </>
+              <>Chưa có khóa học nào được tạo. Hãy tạo khóa học đầu tiên!</>
             )}
           </p>
         </div>
