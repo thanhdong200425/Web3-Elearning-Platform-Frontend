@@ -1,19 +1,9 @@
-// Pinata API configuration - using direct API calls instead of SDK for browser compatibility
-const PINATA_API_URL = 'https://api.pinata.cloud';
+import { PinataSDK } from "pinata";
 
-// Get Pinata API credentials
-const getPinataCredentials = () => {
-  const apiKey = import.meta.env.VITE_PINATA_API_KEY || '';
-  const apiSecret = import.meta.env.VITE_PINATA_API_SECRET || '';
-
-  if (!apiKey || !apiSecret) {
-    throw new Error(
-      'Pinata API credentials not found. Please set VITE_PINATA_API_KEY and VITE_PINATA_API_SECRET in your .env file.'
-    );
-  }
-
-  return { apiKey, apiSecret };
-};
+const pinata = new PinataSDK({
+  pinataJwt: import.meta.env.VITE_PINATA_JWT || "",
+  pinataGateway: import.meta.env.VITE_GATEWAY_URL || "",
+});
 
 // Types matching CourseFormData
 interface CourseSection {
@@ -35,7 +25,7 @@ interface IPFSCourseContent {
       title: string;
       content: string;
       videoUrl?: string;
-      type: 'text' | 'video';
+      type: "text" | "video";
     }>;
   }>;
   imageCid?: string; // Add imageCid to content structure
@@ -50,8 +40,8 @@ function convertToIPFSFormat(sections: CourseSection[]): IPFSCourseContent {
       title: section.title,
       lessons: (section.lessons || []).map((lesson) => ({
         title: lesson.title,
-        content: lesson.content || '',
-        type: lesson.file ? 'video' : 'text',
+        content: lesson.content || "",
+        type: lesson.file ? "video" : "text",
         // Note: Video files will need to be uploaded separately
         // For now, we'll handle text content only
       })),
@@ -60,48 +50,41 @@ function convertToIPFSFormat(sections: CourseSection[]): IPFSCourseContent {
 }
 
 /**
- * Upload file to Pinata using direct API call
+ * Upload file to Pinata using SDK
  */
-async function uploadFileToPinata(file: File, metadata?: { name?: string; keyvalues?: Record<string, string> }): Promise<string> {
-  const { apiKey, apiSecret } = getPinataCredentials();
+async function uploadFileToPinata(
+  file: File,
+  metadata?: { name?: string; keyvalues?: Record<string, string> }
+): Promise<string> {
+  try {
+    // Build upload chain with SDK - use public network
+    // Start with the file upload
+    let uploadChain = pinata.upload.public.file(file);
 
-  const formData = new FormData();
-  formData.append('file', file);
-
-  // Add metadata if provided
-  if (metadata) {
-    const pinataMetadata: any = {};
-    if (metadata.name) {
-      pinataMetadata.name = metadata.name;
+    // Add name if provided
+    if (metadata?.name) {
+      uploadChain = uploadChain.name(metadata.name);
     }
-    if (metadata.keyvalues) {
-      pinataMetadata.keyvalues = metadata.keyvalues;
+
+    // Add keyvalues if provided
+    if (metadata?.keyvalues) {
+      uploadChain = uploadChain.keyvalues(metadata.keyvalues);
     }
-    formData.append('pinataMetadata', JSON.stringify(pinataMetadata));
+
+    // Execute upload
+    const upload = await uploadChain;
+
+    if (!upload.cid) {
+      throw new Error("No CID returned from Pinata SDK");
+    }
+
+    return upload.cid;
+  } catch (error) {
+    console.error("❌ Pinata SDK upload error:", error);
+    throw new Error(
+      `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
   }
-
-  // Add options
-  const pinataOptions = {
-    cidVersion: 1,
-  };
-  formData.append('pinataOptions', JSON.stringify(pinataOptions));
-
-  const response = await fetch(`${PINATA_API_URL}/pinning/pinFileToIPFS`, {
-    method: 'POST',
-    headers: {
-      pinata_api_key: apiKey,
-      pinata_secret_api_key: apiSecret,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Pinata API error: ${response.status} ${response.statusText} - ${errorText}`);
-  }
-
-  const result = await response.json();
-  return result.IpfsHash;
 }
 
 /**
@@ -109,21 +92,21 @@ async function uploadFileToPinata(file: File, metadata?: { name?: string; keyval
  */
 export async function uploadFileToIPFS(file: File): Promise<string> {
   try {
-    console.log('📤 Uploading file to IPFS:', file.name);
+    console.log("📤 Uploading file to IPFS:", file.name);
 
     const cid = await uploadFileToPinata(file, {
       name: file.name,
       keyvalues: {
-        type: 'file',
+        type: "file",
       },
     });
 
-    console.log('✅ File uploaded successfully. CID:', cid);
+    console.log("✅ File uploaded successfully. CID:", cid);
     return cid;
   } catch (error) {
-    console.error('❌ Error uploading file to IPFS:', error);
+    console.error("❌ Error uploading file to IPFS:", error);
     throw new Error(
-      `Không thể upload file "${file.name}" lên IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Không thể upload file "${file.name}" lên IPFS: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }
@@ -138,15 +121,15 @@ export async function uploadCourseContent(
 ): Promise<string> {
   try {
     if (!sections || sections.length === 0) {
-      throw new Error('Không có nội dung khóa học để upload');
+      throw new Error("Không có nội dung khóa học để upload");
     }
 
-    console.log('📤 Uploading course content to IPFS...');
-    console.log('📋 Sections to upload:', sections.length);
+    console.log("📤 Uploading course content to IPFS...");
+    console.log("📋 Sections to upload:", sections.length);
 
     // 1. Convert format from form to IPFS format
     const formattedContent = convertToIPFSFormat(sections);
-    
+
     // Add imageCid to content if provided
     if (imageCid) {
       formattedContent.imageCid = imageCid;
@@ -154,28 +137,28 @@ export async function uploadCourseContent(
 
     // 2. Create content.json file
     const contentJson = JSON.stringify(formattedContent, null, 2);
-    const contentBlob = new Blob([contentJson], { type: 'application/json' });
-    const contentFile = new File([contentBlob], 'content.json', {
-      type: 'application/json',
+    const contentBlob = new Blob([contentJson], { type: "application/json" });
+    const contentFile = new File([contentBlob], "content.json", {
+      type: "application/json",
     });
 
     // 3. Upload to Pinata
     const cid = await uploadFileToPinata(contentFile, {
       name: `course-content-${Date.now()}`,
       keyvalues: {
-        type: 'course-content',
+        type: "course-content",
         timestamp: Date.now().toString(),
       },
     });
 
-    console.log('✅ Course content uploaded successfully. CID:', cid);
-    console.log('📄 Content structure:', formattedContent);
+    console.log("✅ Course content uploaded successfully. CID:", cid);
+    console.log("📄 Content structure:", formattedContent);
 
     return cid;
   } catch (error) {
-    console.error('❌ Error uploading course content to IPFS:', error);
+    console.error("❌ Error uploading course content to IPFS:", error);
     throw new Error(
-      `Không thể upload nội dung khóa học lên IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Không thể upload nội dung khóa học lên IPFS: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }
@@ -192,28 +175,28 @@ export async function uploadCourseMetadata(metadata: {
   rating?: number;
 }): Promise<string> {
   try {
-    console.log('📤 Uploading course metadata to IPFS...');
+    console.log("📤 Uploading course metadata to IPFS...");
 
     const metadataJson = JSON.stringify(metadata, null, 2);
-    const metadataBlob = new Blob([metadataJson], { type: 'application/json' });
-    const metadataFile = new File([metadataBlob], 'metadata.json', {
-      type: 'application/json',
+    const metadataBlob = new Blob([metadataJson], { type: "application/json" });
+    const metadataFile = new File([metadataBlob], "metadata.json", {
+      type: "application/json",
     });
 
     const cid = await uploadFileToPinata(metadataFile, {
       name: `course-metadata-${Date.now()}`,
       keyvalues: {
-        type: 'course-metadata',
+        type: "course-metadata",
         timestamp: Date.now().toString(),
       },
     });
 
-    console.log('✅ Course metadata uploaded successfully. CID:', cid);
+    console.log("✅ Course metadata uploaded successfully. CID:", cid);
     return cid;
   } catch (error) {
-    console.error('❌ Error uploading course metadata to IPFS:', error);
+    console.error("❌ Error uploading course metadata to IPFS:", error);
     throw new Error(
-      `Không thể upload metadata lên IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Không thể upload metadata lên IPFS: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }
@@ -223,21 +206,21 @@ export async function uploadCourseMetadata(metadata: {
  */
 export async function uploadCourseImage(imageFile: File): Promise<string> {
   try {
-    console.log('📤 Uploading course image to IPFS:', imageFile.name);
+    console.log("📤 Uploading course image to IPFS:", imageFile.name);
 
     const cid = await uploadFileToPinata(imageFile, {
       name: imageFile.name,
       keyvalues: {
-        type: 'course-image',
+        type: "course-image",
       },
     });
 
-    console.log('✅ Course image uploaded successfully. CID:', cid);
+    console.log("✅ Course image uploaded successfully. CID:", cid);
     return cid;
   } catch (error) {
-    console.error('❌ Error uploading course image to IPFS:', error);
+    console.error("❌ Error uploading course image to IPFS:", error);
     throw new Error(
-      `Không thể upload hình ảnh lên IPFS: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Không thể upload hình ảnh lên IPFS: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }
@@ -247,25 +230,24 @@ export async function uploadCourseImage(imageFile: File): Promise<string> {
  */
 export async function testPinataConnection(): Promise<boolean> {
   try {
-    const { apiKey, apiSecret } = getPinataCredentials();
-
-    const response = await fetch(`${PINATA_API_URL}/data/testAuthentication`, {
-      method: 'GET',
-      headers: {
-        pinata_api_key: apiKey,
-        pinata_secret_api_key: apiSecret,
-      },
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    const result = await response.json();
-    console.log('✅ Pinata connection successful:', result);
-    return result.authenticated === true;
+    // Test authentication by attempting to list files (or use testAuthentication if available)
+    await pinata.testAuthentication();
+    console.log("✅ Pinata connection successful");
+    return true;
   } catch (error) {
-    console.error('❌ Pinata connection failed:', error);
+    console.error("❌ Pinata connection failed:", error);
     return false;
   }
+}
+
+/**
+ * Get gateway URL for accessing IPFS content
+ */
+export function getGatewayUrl(cid: string): string {
+  const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || "";
+  if (!gatewayUrl) {
+    console.warn("⚠️ Gateway URL not configured, using default IPFS gateway");
+    return `https://ipfs.io/ipfs/${cid}`;
+  }
+  return `https://${gatewayUrl}/ipfs/${cid}`;
 }

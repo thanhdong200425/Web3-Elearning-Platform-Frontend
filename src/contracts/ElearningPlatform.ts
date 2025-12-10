@@ -1,12 +1,12 @@
 export const elearningPlatformAddress =
-  "0xb1E592EEaCBBf221B95A2cEF4dddA5e8D62E994A";
+  "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 
 export const elearningPlatformABI = [
   {
     inputs: [
       {
         internalType: "address",
-        name: "certificateNFTAddress",
+        name: "_certificateNFTAddress",
         type: "address",
       },
     ],
@@ -96,6 +96,25 @@ export const elearningPlatformABI = [
         type: "uint256",
       },
     ],
+    name: "courseIds",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
     name: "courses",
     outputs: [
       {
@@ -131,17 +150,17 @@ export const elearningPlatformABI = [
     inputs: [
       {
         internalType: "string",
-        name: "title",
+        name: "_title",
         type: "string",
       },
       {
         internalType: "uint256",
-        name: "price",
+        name: "_price",
         type: "uint256",
       },
       {
         internalType: "string",
-        name: "contentCid",
+        name: "_contentCid",
         type: "string",
       },
     ],
@@ -197,75 +216,6 @@ export const elearningPlatformABI = [
     type: "function",
   },
   {
-    inputs: [],
-    name: "nextCourseId",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_courseId",
-        type: "uint256",
-      },
-    ],
-    name: "purchaseCourse",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_student",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_courseId",
-        type: "uint256",
-      },
-    ],
-    name: "hasPurchasedCourse",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_student",
-        type: "address",
-      },
-    ],
-    name: "getPurchasedCourses",
-    outputs: [
-      {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
     inputs: [
       {
         internalType: "uint256",
@@ -312,6 +262,75 @@ export const elearningPlatformABI = [
     inputs: [
       {
         internalType: "address",
+        name: "_student",
+        type: "address",
+      },
+    ],
+    name: "getPurchasedCourses",
+    outputs: [
+      {
+        internalType: "uint256[]",
+        name: "",
+        type: "uint256[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "_student",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "_courseId",
+        type: "uint256",
+      },
+    ],
+    name: "hasPurchasedCourse",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "nextCourseId",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_courseId",
+        type: "uint256",
+      },
+    ],
+    name: "purchaseCourse",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
         name: "",
         type: "address",
       },
@@ -327,6 +346,54 @@ export const elearningPlatformABI = [
         internalType: "bool",
         name: "",
         type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "studentCourseIndex",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "studentCourses",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
       },
     ],
     stateMutability: "view",

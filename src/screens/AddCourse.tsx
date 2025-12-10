@@ -19,11 +19,7 @@ import BackButton from "@/components/buttons/BackButton";
 import { useWriteContract, useAccount } from "wagmi";
 import { parseEther } from "viem";
 import { addToast } from "@heroui/toast";
-import {
-  uploadCourseContent,
-  uploadCourseImage,
-  uploadCourseMetadata,
-} from "@/services/ipfs";
+import { createCourse } from "@/services/courseService";
 
 import {
   elearningPlatformABI,
@@ -141,100 +137,19 @@ const AddCourse: React.FC = () => {
       return;
     }
 
-    // Validate required fields
-    if (!data.title || !data.coursePrice || data.coursePrice <= 0) {
-      addToast({
-        title: "Validation Error",
-        description:
-          "Please fill in all required fields including course title and price.",
-        color: "danger",
-        timeout: 3000,
-        shouldShowTimeoutProgress: true,
-      });
-      return;
-    }
-
-    // Validate course content
-    if (!data.sections || data.sections.length === 0) {
-      addToast({
-        title: "Validation Error",
-        description:
-          "Please add at least one section with lessons before deploying.",
-        color: "danger",
-        timeout: 3000,
-        shouldShowTimeoutProgress: true,
-      });
-      return;
-    }
-
     try {
-      // Step 1: Upload course content to IPFS
-      addToast({
-        title: "Uploading to IPFS",
-        description: "Đang upload nội dung khóa học lên IPFS...",
-        color: "default",
-        timeout: 10000,
-        shouldShowTimeoutProgress: true,
+      // Upload course content to IPFS using the service
+      const { contentCid } = await createCourse(data, (message) => {
+        addToast({
+          title: "Uploading to IPFS",
+          description: message,
+          color: "default",
+          timeout: 2000,
+          shouldShowTimeoutProgress: true,
+        });
       });
 
-      console.log("📤 Starting IPFS upload process...");
-      console.log("📋 Course data:", {
-        title: data.title,
-        sectionsCount: data.sections?.length || 0,
-        hasImage: !!data.coverImage,
-      });
-
-      // Step 1: Upload cover image first if provided (so we can include it in content.json)
-      let imageCid: string | undefined;
-      if (data.coverImage) {
-        try {
-          addToast({
-            title: "Uploading Image",
-            description: "Đang upload hình ảnh khóa học...",
-            color: "default",
-            timeout: 5000,
-            shouldShowTimeoutProgress: true,
-          });
-          imageCid = await uploadCourseImage(data.coverImage);
-          console.log("✅ Course image uploaded. CID:", imageCid);
-        } catch (imageError) {
-          console.warn(
-            "⚠️ Failed to upload image, continuing without image:",
-            imageError
-          );
-          // Continue without image if upload fails
-        }
-      }
-
-      // Step 2: Upload course content (sections and lessons) with imageCid included
-      const contentCid = await uploadCourseContent(
-        data.sections || [],
-        imageCid
-      );
-      console.log("✅ Course content uploaded. CID:", contentCid);
-
-      // Step 3: Upload metadata (optional, for better organization)
-      let metadataCid: string | undefined;
-      try {
-        const metadata = {
-          title: data.title,
-          description: data.detailedDescription || data.shortDescription,
-          shortDescription: data.shortDescription,
-          imageCid: imageCid,
-          category: data.category,
-          rating: 0, // Default rating
-        };
-        metadataCid = await uploadCourseMetadata(metadata);
-        console.log("✅ Course metadata uploaded. CID:", metadataCid);
-      } catch (metadataError) {
-        console.warn(
-          "⚠️ Failed to upload metadata, continuing with content CID only:",
-          metadataError
-        );
-        // Continue with content CID only
-      }
-
-      // Step 4: Deploy to smart contract with real CID
+      // Deploy to smart contract with the content CID
       addToast({
         title: "Deploying to Blockchain",
         description: "Đang deploy khóa học lên blockchain...",
@@ -243,8 +158,6 @@ const AddCourse: React.FC = () => {
         shouldShowTimeoutProgress: true,
       });
 
-      // Use contentCid as the main CID for the course
-      // This is what will be used to fetch course content
       writeContract({
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
@@ -252,17 +165,37 @@ const AddCourse: React.FC = () => {
         args: [
           data.title,
           parseEther(data.coursePrice.toString()),
-          contentCid, // ✅ Sử dụng CID thực tế từ IPFS upload
+          contentCid,
         ],
       });
 
       console.log("✅ Course deployment initiated with CID:", contentCid);
     } catch (error) {
       console.error("❌ Deployment failed:", error);
+      
+      // Handle specific error types with appropriate messages
+      let errorMessage = "An unknown error occurred";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      // Provide user-friendly error messages
+      if (errorMessage.includes("title")) {
+        errorMessage = "Course title is required and cannot be empty.";
+      } else if (errorMessage.includes("price")) {
+        errorMessage = "Course price must be greater than zero.";
+      } else if (errorMessage.includes("section")) {
+        errorMessage = "Please add at least one section with lessons.";
+      } else if (errorMessage.includes("IPFS") || errorMessage.includes("upload")) {
+        errorMessage = "Failed to upload course content to IPFS. Please check your connection and try again.";
+      }
+
       addToast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "An unknown error occurred",
+        title: "Deployment Failed",
+        description: errorMessage,
         color: "danger",
         timeout: 5000,
         shouldShowTimeoutProgress: true,
