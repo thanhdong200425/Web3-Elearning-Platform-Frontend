@@ -1,9 +1,19 @@
-import { PinataSDK } from "pinata";
+// Pinata API configuration - using direct API calls instead of SDK for browser compatibility
+const PINATA_API_URL = "https://api.pinata.cloud";
 
-const pinata = new PinataSDK({
-  pinataJwt: import.meta.env.VITE_PINATA_JWT || "",
-  pinataGateway: import.meta.env.VITE_GATEWAY_URL || "",
-});
+// Get Pinata API credentials
+const getPinataCredentials = () => {
+  const apiKey = import.meta.env.VITE_PINATA_API_KEY || "";
+  const apiSecret = import.meta.env.VITE_PINATA_API_SECRET || "";
+
+  if (!apiKey || !apiSecret) {
+    throw new Error(
+      "Pinata API credentials not found. Please set VITE_PINATA_API_KEY and VITE_PINATA_API_SECRET in your .env file."
+    );
+  }
+
+  return { apiKey, apiSecret };
+};
 
 // Types matching CourseFormData
 interface CourseSection {
@@ -50,41 +60,53 @@ function convertToIPFSFormat(sections: CourseSection[]): IPFSCourseContent {
 }
 
 /**
- * Upload file to Pinata using SDK
+ * Upload file to Pinata using direct API call
  */
 async function uploadFileToPinata(
   file: File,
   metadata?: { name?: string; keyvalues?: Record<string, string> }
 ): Promise<string> {
-  try {
-    // Build upload chain with SDK - use public network
-    // Start with the file upload
-    let uploadChain = pinata.upload.public.file(file);
+  const { apiKey, apiSecret } = getPinataCredentials();
 
-    // Add name if provided
-    if (metadata?.name) {
-      uploadChain = uploadChain.name(metadata.name);
+  const formData = new FormData();
+  formData.append("file", file);
+
+  // Add metadata if provided
+  if (metadata) {
+    const pinataMetadata: any = {};
+    if (metadata.name) {
+      pinataMetadata.name = metadata.name;
     }
-
-    // Add keyvalues if provided
-    if (metadata?.keyvalues) {
-      uploadChain = uploadChain.keyvalues(metadata.keyvalues);
+    if (metadata.keyvalues) {
+      pinataMetadata.keyvalues = metadata.keyvalues;
     }
+    formData.append("pinataMetadata", JSON.stringify(pinataMetadata));
+  }
 
-    // Execute upload
-    const upload = await uploadChain;
+  // Add options
+  const pinataOptions = {
+    cidVersion: 1,
+  };
+  formData.append("pinataOptions", JSON.stringify(pinataOptions));
 
-    if (!upload.cid) {
-      throw new Error("No CID returned from Pinata SDK");
-    }
+  const response = await fetch(`${PINATA_API_URL}/pinning/pinFileToIPFS`, {
+    method: "POST",
+    headers: {
+      pinata_api_key: apiKey,
+      pinata_secret_api_key: apiSecret,
+    },
+    body: formData,
+  });
 
-    return upload.cid;
-  } catch (error) {
-    console.error("❌ Pinata SDK upload error:", error);
+  if (!response.ok) {
+    const errorText = await response.text();
     throw new Error(
-      `Failed to upload file: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Pinata API error: ${response.status} ${response.statusText} - ${errorText}`
     );
   }
+
+  const result = await response.json();
+  return result.IpfsHash;
 }
 
 /**
@@ -230,24 +252,25 @@ export async function uploadCourseImage(imageFile: File): Promise<string> {
  */
 export async function testPinataConnection(): Promise<boolean> {
   try {
-    // Test authentication by attempting to list files (or use testAuthentication if available)
-    await pinata.testAuthentication();
-    console.log("✅ Pinata connection successful");
-    return true;
+    const { apiKey, apiSecret } = getPinataCredentials();
+
+    const response = await fetch(`${PINATA_API_URL}/data/testAuthentication`, {
+      method: "GET",
+      headers: {
+        pinata_api_key: apiKey,
+        pinata_secret_api_key: apiSecret,
+      },
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const result = await response.json();
+    console.log("✅ Pinata connection successful:", result);
+    return result.authenticated === true;
   } catch (error) {
     console.error("❌ Pinata connection failed:", error);
     return false;
   }
-}
-
-/**
- * Get gateway URL for accessing IPFS content
- */
-export function getGatewayUrl(cid: string): string {
-  const gatewayUrl = import.meta.env.VITE_GATEWAY_URL || "";
-  if (!gatewayUrl) {
-    console.warn("⚠️ Gateway URL not configured, using default IPFS gateway");
-    return `https://ipfs.io/ipfs/${cid}`;
-  }
-  return `https://${gatewayUrl}/ipfs/${cid}`;
 }
