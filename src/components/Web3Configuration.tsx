@@ -26,16 +26,20 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
 
-  // Update wallet address in form when connected
+  // Auto-update walletAddress when wallet connects
   useEffect(() => {
+    if (address && setValue && isConnected) {
+      console.log("Setting walletAddress to:", address);
+      setValue('walletAddress', address);
+    }
+  }, [address, isConnected, setValue]);
+
+  const handleConnectWallet = () => {
+    connect({ connector: injected() })
     if (address && setValue) {
       setValue('walletAddress', address);
     }
-  }, [address, setValue]);
-
-  const handleConnectWallet = () => {
-    connect({ connector: injected() });
-  };
+  }
 
   const handleDisconnectWallet = () => {
     disconnect();
