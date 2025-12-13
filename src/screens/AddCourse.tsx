@@ -140,6 +140,7 @@ const AddCourse: React.FC = () => {
     try {
       // Upload course content to IPFS using the service
       const { contentCid } = await createCourse(data, (message) => {
+        console.log("IPFS Upload Progress:", message);
         addToast({
           title: "Uploading to IPFS",
           description: message,
@@ -162,44 +163,12 @@ const AddCourse: React.FC = () => {
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
         functionName: "createCourse",
-        args: [
-          data.title,
-          parseEther(data.coursePrice.toString()),
-          contentCid,
-        ],
+        args: [data.title, parseEther(data.coursePrice.toString()), contentCid],
       });
 
-      console.log("✅ Course deployment initiated with CID:", contentCid);
+      console.log("Error message:", writeError);
     } catch (error) {
       console.error("❌ Deployment failed:", error);
-      
-      // Handle specific error types with appropriate messages
-      let errorMessage = "An unknown error occurred";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === "string") {
-        errorMessage = error;
-      }
-
-      // Provide user-friendly error messages
-      if (errorMessage.includes("title")) {
-        errorMessage = "Course title is required and cannot be empty.";
-      } else if (errorMessage.includes("price")) {
-        errorMessage = "Course price must be greater than zero.";
-      } else if (errorMessage.includes("section")) {
-        errorMessage = "Please add at least one section with lessons.";
-      } else if (errorMessage.includes("IPFS") || errorMessage.includes("upload")) {
-        errorMessage = "Failed to upload course content to IPFS. Please check your connection and try again.";
-      }
-
-      addToast({
-        title: "Deployment Failed",
-        description: errorMessage,
-        color: "danger",
-        timeout: 5000,
-        shouldShowTimeoutProgress: true,
-      });
     }
   };
 
