@@ -1,5 +1,9 @@
 import { CourseFormData } from "@/schemas/courseForm";
-import { uploadCourseContent, uploadCourseImage, uploadCourseMetadata } from "./ipfs";
+import {
+  uploadCourseContent,
+  uploadCourseImage,
+  uploadCourseMetadata,
+} from "./ipfs";
 
 export interface CreateCourseResult {
   contentCid: string;
@@ -25,22 +29,14 @@ export const createCourse = async (
       throw new Error("At least one section with lessons is required");
     }
 
-    console.log("📤 Starting IPFS upload process...");
-    console.log("📋 Course data:", {
-      title: course.title,
-      sectionsCount: course.sections?.length || 0,
-      hasImage: !!course.coverImage,
-    });
-
     // Step 1: Upload cover image if provided
     let imageCid: string | undefined;
     if (course.coverImage) {
       try {
         onProgress?.("Uploading course image to IPFS...");
         imageCid = await uploadCourseImage(course.coverImage);
-        console.log("✅ Course image uploaded. CID:", imageCid);
       } catch (imageError) {
-        console.warn(
+        console.error(
           "⚠️ Failed to upload image, continuing without image:",
           imageError
         );
@@ -49,12 +45,10 @@ export const createCourse = async (
     }
 
     // Step 2: Upload course content (sections and lessons)
-    onProgress?.("Uploading course content to IPFS...");
     const contentCid = await uploadCourseContent(
       course.sections || [],
       imageCid
     );
-    console.log("✅ Course content uploaded. CID:", contentCid);
 
     // Step 3: Upload metadata (optional, for better organization)
     let metadataCid: string | undefined;
@@ -69,9 +63,8 @@ export const createCourse = async (
         rating: 0,
       };
       metadataCid = await uploadCourseMetadata(metadata);
-      console.log("✅ Course metadata uploaded. CID:", metadataCid);
     } catch (metadataError) {
-      console.warn(
+      console.error(
         "⚠️ Failed to upload metadata, continuing with content CID only:",
         metadataError
       );

@@ -1,5 +1,5 @@
 export const elearningPlatformAddress =
-  "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+  "0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1";
 
 export const elearningPlatformABI = [
   {
@@ -210,6 +210,52 @@ export const elearningPlatformABI = [
         internalType: "struct ElearningPlatform.Course[]",
         name: "",
         type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "courseId",
+        type: "uint256",
+      },
+    ],
+    name: "getCourseById",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "id",
+            type: "uint256",
+          },
+          {
+            internalType: "address",
+            name: "instructor",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "price",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "title",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "contentCid",
+            type: "string",
+          },
+        ],
+        internalType: "struct ElearningPlatform.Course",
+        name: "",
+        type: "tuple",
       },
     ],
     stateMutability: "view",
