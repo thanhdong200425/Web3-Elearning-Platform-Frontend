@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -10,16 +10,17 @@ import { Input } from "@heroui/input";
 import { Textarea } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Select, SelectItem } from "@heroui/select";
-import FileUpload from "../components/FileUpload";
-import StepIndicator from "../components/StepIndicator";
-import Web3Configuration from "../components/Web3Configuration";
-import CourseContent from "../components/CourseContent";
-import CoursePreview from "../components/CoursePreview";
+import FileUpload from "../components/forms/FileUpload";
+import StepIndicator from "../components/layout/StepIndicator";
+import Web3Configuration from "../components/forms/Web3Configuration";
+import CourseContent from "../components/course/CourseContent";
+import CoursePreview from "../components/course/CoursePreview";
 import BackButton from "@/components/buttons/BackButton";
 import { useWriteContract, useAccount } from "wagmi";
 import { parseEther } from "viem";
 import { addToast } from "@heroui/toast";
 import { createCourse } from "@/services/courseService";
+import { validateCourseForDeployment } from "@/utils/courseValidation";
 
 import {
   elearningPlatformABI,
@@ -63,6 +64,7 @@ const AddCourse: React.FC = () => {
     register,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<CourseFormData>({
@@ -73,7 +75,7 @@ const AddCourse: React.FC = () => {
       detailedDescription: "",
       category: "",
       coverImage: undefined,
-      paymentToken: "USDC",
+      paymentToken: "ETH",
       coursePrice: 0,
       walletAddress: "",
       sections: [],
@@ -96,7 +98,7 @@ const AddCourse: React.FC = () => {
   const coursePrice = watch("coursePrice") || 0;
 
   // Handle write errors
-  React.useEffect(() => {
+  useEffect(() => {
     if (writeError) {
       console.error("Deployment failed:", writeError);
       addToast({
@@ -112,7 +114,7 @@ const AddCourse: React.FC = () => {
   }, [writeError]);
 
   // Handle success
-  React.useEffect(() => {
+  useEffect(() => {
     if (isSuccess && hash) {
       addToast({
         title: "Success",
@@ -140,7 +142,6 @@ const AddCourse: React.FC = () => {
     try {
       // Upload course content to IPFS using the service
       const { contentCid } = await createCourse(data, (message) => {
-        console.log("IPFS Upload Progress:", message);
         addToast({
           title: "Uploading to IPFS",
           description: message,
@@ -179,16 +180,40 @@ const AddCourse: React.FC = () => {
   };
 
   const handleDeploy = async () => {
-    if (!isConnected) {
+    // Trigger validation for all fields
+    await handleSubmit(
+      () => {}, // Empty success callback
+      () => {} // Empty error callback
+    )();
+
+    // Get all current form values and errors
+    const formData = getValues();
+
+    // Validate all steps
+    const validationResult = validateCourseForDeployment(
+      formData,
+      errors,
+      isConnected
+    );
+
+    // If validation fails, show error and redirect to the appropriate step
+    if (!validationResult.isValid) {
       addToast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet in Step 2 before deploying.",
+        title: validationResult.title || "Validation Error",
+        description:
+          validationResult.message || "Please fix the errors before deploying.",
         color: "danger",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
+
+      if (validationResult.step) {
+        setCurrentStep(validationResult.step);
+      }
       return;
     }
+
+    // If all validations pass, proceed with deployment
     handleSubmit(onSubmit)();
   };
 
@@ -313,9 +338,10 @@ const AddCourse: React.FC = () => {
                     <FileUpload
                       accept="image/*"
                       error={errors.coverImage}
-                      isRequired={false}
+                      isRequired={true}
                       name="coverImage"
                       setValue={setValue}
+                      value={getValues("coverImage")}
                     />
                   </div>
                 </>
@@ -327,6 +353,7 @@ const AddCourse: React.FC = () => {
                   errors={errors}
                   register={register}
                   setValue={setValue}
+                  watch={watch}
                 />
               )}
 
@@ -345,16 +372,17 @@ const AddCourse: React.FC = () => {
               {/* Navigation Buttons */}
               {currentStep < 4 && (
                 <div className="border-t border-gray-200 pt-6">
-                  <div className="flex justify-between">
-                    <Button
-                      className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50"
-                      disabled={currentStep === 1}
-                      size="md"
-                      variant="bordered"
-                      onPress={handleBack}
-                    >
-                      Back
-                    </Button>
+                  <div className="flex justify-end gap-3">
+                    {currentStep > 1 && (
+                      <Button
+                        className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50"
+                        size="md"
+                        variant="bordered"
+                        onPress={handleBack}
+                      >
+                        Back
+                      </Button>
+                    )}
                     <Button
                       className="bg-gray-900 rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
                       disabled={isSubmitting}

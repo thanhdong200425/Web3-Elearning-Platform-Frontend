@@ -4,10 +4,10 @@ import { Sparkles, FileText, Route } from "lucide-react";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 
-import Header from "@/components/Header";
-import ContentFormatCard from "@/components/ContentFormatCard";
-import SuggestionChip from "@/components/SuggestionChip";
-import AssessmentCheckbox from "@/components/AssessmentCheckbox";
+import Header from "@/components/layout/Header";
+import ContentFormatCard from "@/components/cards/ContentFormatCard";
+import SuggestionChip from "@/components/ui/SuggestionChip";
+import AssessmentCheckbox from "@/components/forms/AssessmentCheckbox";
 import { generateCourseContent } from "@/services/aiService";
 import { addToast } from "@heroui/toast";
 

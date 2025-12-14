@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@heroui/button";
-import CourseCard from "./CourseCard";
+import CourseCard from "../cards/CourseCard";
 
 interface Course {
   id: bigint;

@@ -5,12 +5,12 @@ import {
   elearningPlatformABI,
   elearningPlatformAddress,
 } from "@/contracts/ElearningPlatform";
-import Header from "@/components/Header";
-import PartnerLogosSection from "@/components/PartnerLogosSection";
-import TrendingSection from "@/components/TrendingSection";
-import HotReleasesSection from "@/components/HotReleasesSection";
-import AllCoursesSection from "@/components/AllCoursesSection";
-import CategoriesSection from "@/components/CategoriesSection";
+import Header from "@/components/layout/Header";
+import PartnerLogosSection from "@/components/sections/PartnerLogosSection";
+import TrendingSection from "@/components/sections/TrendingSection";
+import HotReleasesSection from "@/components/sections/HotReleasesSection";
+import AllCoursesSection from "@/components/sections/AllCoursesSection";
+import CategoriesSection from "@/components/sections/CategoriesSection";
 import { categoryOptions } from "../schemas/courseForm";
 
 interface OnChainCourse {

@@ -3,7 +3,7 @@ import { ToastProvider } from "@heroui/toast";
 import { Routes, Route } from "react-router-dom";
 import CourseDetail from "./screens/CourseDetail";
 import MyCourses from "./screens/MyCourses";
-import CourseViewer from "./components/CourseViewer";
+import CourseViewer from "./components/course/CourseViewer";
 import Home from "./screens/Home";
 import AITutor from "./screens/AITutor";
 import AIResult from "./screens/AIResult";

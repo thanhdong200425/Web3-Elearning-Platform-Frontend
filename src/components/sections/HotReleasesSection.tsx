@@ -1,9 +1,9 @@
-import React from 'react';
-import { ArrowRight } from 'lucide-react';
-import HotReleaseCard from './HotReleaseCard';
+import React from "react";
+import { ArrowRight } from "lucide-react";
+import HotReleaseCard from "../cards/HotReleaseCard";
 
 interface Course {
-  id: bigint; 
+  id: bigint;
   instructor: string;
   price: bigint;
   title: string;

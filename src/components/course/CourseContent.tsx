@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { UseFormSetValue, UseFormWatch } from 'react-hook-form';
-import { CourseFormData } from '../schemas/courseForm';
-import { Button } from '@heroui/button';
-import FileUpload from './FileUpload'; // ⬅️ thêm import
+import React, { useState } from "react";
+import { UseFormSetValue, UseFormWatch } from "react-hook-form";
+import { CourseFormData } from "../../schemas/courseForm";
+import { Button } from "@heroui/button";
+import FileUpload from "../forms/FileUpload"; // ⬅️ thêm import
 
 interface CourseContentProps {
   setValue: UseFormSetValue<CourseFormData>;
@@ -23,18 +23,18 @@ interface Lesson {
 }
 
 const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
-  const sections = watch('sections') || [];
+  const sections = watch("sections") || [];
   const [isAddingSection, setIsAddingSection] = useState(false);
 
   const addSection = () => {
     const newSection: Section = {
       id: `section-${Date.now()}`,
-      title: '',
+      title: "",
       lessons: [],
     };
 
     const updatedSections = [...sections, newSection];
-    setValue('sections', updatedSections);
+    setValue("sections", updatedSections);
     setIsAddingSection(true);
   };
 
@@ -42,18 +42,20 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
     const updatedSections = sections.map((section) =>
       section.id === sectionId ? { ...section, title } : section
     );
-    setValue('sections', updatedSections);
+    setValue("sections", updatedSections);
   };
 
   const deleteSection = (sectionId: string) => {
-    const updatedSections = sections.filter((section) => section.id !== sectionId);
-    setValue('sections', updatedSections);
+    const updatedSections = sections.filter(
+      (section) => section.id !== sectionId
+    );
+    setValue("sections", updatedSections);
   };
 
   const addLesson = (sectionId: string) => {
     const newLesson: Lesson = {
       id: `lesson-${Date.now()}`,
-      title: '',
+      title: "",
     };
 
     const updatedSections = sections.map((section) =>
@@ -61,10 +63,14 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
         ? { ...section, lessons: [...(section.lessons || []), newLesson] }
         : section
     );
-    setValue('sections', updatedSections);
+    setValue("sections", updatedSections);
   };
 
-  const updateLessonTitle = (sectionId: string, lessonId: string, title: string) => {
+  const updateLessonTitle = (
+    sectionId: string,
+    lessonId: string,
+    title: string
+  ) => {
     const updatedSections = sections.map((section) =>
       section.id === sectionId
         ? {
@@ -75,11 +81,15 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
           }
         : section
     );
-    setValue('sections', updatedSections);
+    setValue("sections", updatedSections);
   };
 
   // ⬇️ bổ sung: cập nhật nội dung text cho lesson (không ảnh hưởng UI cũ)
-  const updateLessonContent = (sectionId: string, lessonId: string, content: string) => {
+  const updateLessonContent = (
+    sectionId: string,
+    lessonId: string,
+    content: string
+  ) => {
     const updatedSections = sections.map((section) =>
       section.id === sectionId
         ? {
@@ -90,7 +100,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
           }
         : section
     );
-    setValue('sections', updatedSections);
+    setValue("sections", updatedSections);
   };
 
   const deleteLesson = (sectionId: string, lessonId: string) => {
@@ -98,11 +108,13 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
       section.id === sectionId
         ? {
             ...section,
-            lessons: section.lessons?.filter((lesson) => lesson.id !== lessonId),
+            lessons: section.lessons?.filter(
+              (lesson) => lesson.id !== lessonId
+            ),
           }
         : section
     );
-    setValue('sections', updatedSections);
+    setValue("sections", updatedSections);
   };
 
   return (
@@ -113,7 +125,8 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
           Course Content & IPFS Upload
         </h1>
         <p className="text-base text-gray-600">
-          Build your course structure and upload content to decentralized storage
+          Build your course structure and upload content to decentralized
+          storage
         </p>
       </div>
 
@@ -161,7 +174,9 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                       type="text"
                       placeholder="Enter section title"
                       value={section.title}
-                      onChange={(e) => updateSectionTitle(section.id, e.target.value)}
+                      onChange={(e) =>
+                        updateSectionTitle(section.id, e.target.value)
+                      }
                       className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-neutral-950 placeholder-gray-400"
                     />
                   </div>
@@ -190,10 +205,8 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                   <div className="ml-4 space-y-3">
                     {section.lessons.map((lesson, lessonIndex) => {
                       // lấy ipfs url/cid nếu đã upload xong (được FileUpload set vào form)
-                      const ipfsCid =
-                        (lesson as any)?.fileIpfsCid ?? undefined;
-                      const ipfsUrl =
-                        (lesson as any)?.fileUrl ?? undefined;
+                      const ipfsCid = (lesson as any)?.fileIpfsCid ?? undefined;
+                      const ipfsUrl = (lesson as any)?.fileUrl ?? undefined;
 
                       return (
                         <div
@@ -211,7 +224,11 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                                 placeholder="Enter lesson title"
                                 value={lesson.title}
                                 onChange={(e) =>
-                                  updateLessonTitle(section.id, lesson.id, e.target.value)
+                                  updateLessonTitle(
+                                    section.id,
+                                    lesson.id,
+                                    e.target.value
+                                  )
                                 }
                                 className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-950 placeholder-gray-400"
                               />
@@ -219,7 +236,9 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                             <Button
                               size="sm"
                               variant="light"
-                              onPress={() => deleteLesson(section.id, lesson.id)}
+                              onPress={() =>
+                                deleteLesson(section.id, lesson.id)
+                              }
                               className="text-xs text-red-600 hover:text-red-700"
                             >
                               Delete
@@ -234,7 +253,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                                 Lesson Content (optional)
                               </label>
                               <textarea
-                                value={lesson.content ?? ''}
+                                value={lesson.content ?? ""}
                                 onChange={(e) =>
                                   updateLessonContent(
                                     section.id,
@@ -268,8 +287,8 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                                   )}
                                   {ipfsUrl && (
                                     <>
-                                      {' '}
-                                      —{' '}
+                                      {" "}
+                                      —{" "}
                                       <a
                                         href={ipfsUrl}
                                         target="_blank"

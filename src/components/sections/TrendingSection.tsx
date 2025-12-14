@@ -1,6 +1,6 @@
-import React from 'react';
-import CourseCard from './CourseCard';
-import { ChevronRight } from 'lucide-react';
+import React from "react";
+import CourseCard from "../cards/CourseCard";
+import { ChevronRight } from "lucide-react";
 
 interface Course {
   id: bigint;
@@ -23,13 +23,18 @@ const TrendingSection: React.FC<{ courses: Course[] }> = ({ courses }) => {
 
   const weeklySpotlight = courses.slice(3, 6);
   const aiSkills = courses
-    .filter((c) => c.metadata?.category === 'data-science' || c.metadata?.category === 'ai')
+    .filter(
+      (c) =>
+        c.metadata?.category === "data-science" || c.metadata?.category === "ai"
+    )
     .slice(0, 3);
 
   const renderCourseColumn = (title: string, courseList: Course[]) => (
     <div className="bg-gray-50 rounded-[10px] p-6 flex flex-col gap-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-sm font-normal leading-5 text-neutral-950">{title}</h3>
+        <h3 className="text-sm font-normal leading-5 text-neutral-950">
+          {title}
+        </h3>
         <button
           className="w-4 h-4 text-neutral-950 hover:opacity-70 transition-opacity"
           aria-label={`View all ${title}`}
@@ -37,7 +42,7 @@ const TrendingSection: React.FC<{ courses: Course[] }> = ({ courses }) => {
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
-      
+
       <div className="flex flex-col gap-3">
         {courseList.length > 0 ? (
           courseList.map((course) => (
@@ -60,9 +65,9 @@ const TrendingSection: React.FC<{ courses: Course[] }> = ({ courses }) => {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {renderCourseColumn('Most popular', mostPopular)}
-          {renderCourseColumn('Weekly spotlight', weeklySpotlight)}
-          {renderCourseColumn('In-demand AI skills', aiSkills)}
+          {renderCourseColumn("Most popular", mostPopular)}
+          {renderCourseColumn("Weekly spotlight", weeklySpotlight)}
+          {renderCourseColumn("In-demand AI skills", aiSkills)}
         </div>
       </div>
     </section>
