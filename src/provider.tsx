@@ -4,8 +4,8 @@ import { useHref, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { localhost, sepolia } from "wagmi/chains";
-import { injected } from "wagmi/connectors";
+import { sepolia } from "wagmi/chains";
+import { defineChain } from "viem";
 
 declare module "@react-types/shared" {
   interface RouterConfig {
@@ -13,14 +13,21 @@ declare module "@react-types/shared" {
   }
 }
 
+const local31337 = defineChain({
+  id: 31337,
+  name: "Localhost31337",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["http://127.0.0.1:8545"] } },
+});
+
 const queryClient = new QueryClient();
 
 export const config = createConfig({
-  chains: [localhost, sepolia],
+  chains: [local31337, sepolia],
   connectors: [injected()],
   transports: {
+    [local31337.id]: http("http://127.0.0.1:8545"), // Use a default public RPC for localhost
     [sepolia.id]: http(), // Use a default public RPC for Sepolia
-    [localhost.id]: http("http://127.0.0.1:8545"), // Use a default public RPC for localhost
   },
 });
 
