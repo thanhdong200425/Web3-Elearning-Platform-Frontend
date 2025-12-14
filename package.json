@@ -15,6 +15,7 @@
     "test": "hardhat test --config hardhat.config.cjs"
   },
   "dependencies": {
+    "@bitgo-forks/cryptocurrency-icons": "^0.47.0",
     "@google/genai": "^1.29.0",
     "@heroui/button": "^2.2.27",
     "@heroui/card": "^2.2.25",

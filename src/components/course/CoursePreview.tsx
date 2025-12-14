@@ -4,6 +4,20 @@ import { CourseFormData } from "../../schemas/courseForm";
 import { Button } from "@heroui/button";
 import { useAccount } from "wagmi";
 
+// Import crypto icons
+import ethIcon from "@bitgo-forks/cryptocurrency-icons/svg/color/eth.svg";
+import usdcIcon from "@bitgo-forks/cryptocurrency-icons/svg/color/usdc.svg";
+import usdtIcon from "@bitgo-forks/cryptocurrency-icons/svg/color/usdt.svg";
+import maticIcon from "@bitgo-forks/cryptocurrency-icons/svg/color/matic.svg";
+
+// Token icon mapping
+const tokenIcons: Record<string, string> = {
+  ETH: ethIcon,
+  USDC: usdcIcon,
+  USDT: usdtIcon,
+  MATIC: maticIcon,
+};
+
 interface CoursePreviewProps {
   watch: UseFormWatch<CourseFormData>;
   onDeploy: () => void;
@@ -182,15 +196,22 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({
 
           <div className="flex justify-between items-center">
             <span className="text-base text-gray-600">Payment Token</span>
-            <span className="bg-gray-900 text-white text-xs px-2 py-1 rounded-lg">
-              {formData.paymentToken || "USDC"}
+            <span className="bg-gray-900 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1.5">
+              {tokenIcons[formData.paymentToken || "ETH"] && (
+                <img
+                  src={tokenIcons[formData.paymentToken || "ETH"]}
+                  alt={formData.paymentToken || "ETH"}
+                  className="w-4 h-4"
+                />
+              )}
+              {formData.paymentToken || "ETH"}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-base text-gray-600">Course Price</span>
             <span className="text-base text-neutral-950">
-              {coursePrice.toFixed(2)} USDC
+              {coursePrice.toFixed(2)} {formData.paymentToken || "ETH"}
             </span>
           </div>
 
@@ -204,7 +225,7 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({
               Your Revenue (per sale)
             </span>
             <span className="text-base font-medium text-green-600">
-              {revenue.toFixed(2)} USDC
+              {revenue.toFixed(2)} {formData.paymentToken || "ETH"}
             </span>
           </div>
         </div>

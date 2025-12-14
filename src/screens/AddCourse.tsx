@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -20,6 +20,7 @@ import { useWriteContract, useAccount } from "wagmi";
 import { parseEther } from "viem";
 import { addToast } from "@heroui/toast";
 import { createCourse } from "@/services/courseService";
+import { validateCourseForDeployment } from "@/utils/courseValidation";
 
 import {
   elearningPlatformABI,
@@ -63,6 +64,7 @@ const AddCourse: React.FC = () => {
     register,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<CourseFormData>({
@@ -73,7 +75,7 @@ const AddCourse: React.FC = () => {
       detailedDescription: "",
       category: "",
       coverImage: undefined,
-      paymentToken: "USDC",
+      paymentToken: "ETH",
       coursePrice: 0,
       walletAddress: "",
       sections: [],
@@ -96,7 +98,7 @@ const AddCourse: React.FC = () => {
   const coursePrice = watch("coursePrice") || 0;
 
   // Handle write errors
-  React.useEffect(() => {
+  useEffect(() => {
     if (writeError) {
       console.error("Deployment failed:", writeError);
       addToast({
@@ -112,7 +114,7 @@ const AddCourse: React.FC = () => {
   }, [writeError]);
 
   // Handle success
-  React.useEffect(() => {
+  useEffect(() => {
     if (isSuccess && hash) {
       addToast({
         title: "Success",
@@ -178,31 +180,40 @@ const AddCourse: React.FC = () => {
   };
 
   const handleDeploy = async () => {
-    if (!isConnected) {
-      addToast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet in Step 2 before deploying.",
-        color: "danger",
-        timeout: 3000,
-        shouldShowTimeoutProgress: true,
-      });
-      return;
-    }
+    // Trigger validation for all fields
+    await handleSubmit(
+      () => {}, // Empty success callback
+      () => {} // Empty error callback
+    )();
 
-    // Check if cover image is uploaded
-    const coverImage = watch("coverImage");
-    if (!coverImage) {
+    // Get all current form values and errors
+    const formData = getValues();
+
+    // Validate all steps
+    const validationResult = validateCourseForDeployment(
+      formData,
+      errors,
+      isConnected
+    );
+
+    // If validation fails, show error and redirect to the appropriate step
+    if (!validationResult.isValid) {
       addToast({
-        title: "Cover Image Required",
+        title: validationResult.title || "Validation Error",
         description:
-          "Please upload a cover image in Step 1 before deploying your course.",
+          validationResult.message || "Please fix the errors before deploying.",
         color: "danger",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
+
+      if (validationResult.step) {
+        setCurrentStep(validationResult.step);
+      }
       return;
     }
 
+    // If all validations pass, proceed with deployment
     handleSubmit(onSubmit)();
   };
 
@@ -327,9 +338,10 @@ const AddCourse: React.FC = () => {
                     <FileUpload
                       accept="image/*"
                       error={errors.coverImage}
-                      isRequired={false}
+                      isRequired={true}
                       name="coverImage"
                       setValue={setValue}
+                      value={getValues("coverImage")}
                     />
                   </div>
                 </>
@@ -341,6 +353,7 @@ const AddCourse: React.FC = () => {
                   errors={errors}
                   register={register}
                   setValue={setValue}
+                  watch={watch}
                 />
               )}
 

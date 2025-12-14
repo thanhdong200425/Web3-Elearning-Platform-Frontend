@@ -1,16 +1,31 @@
 import React, { useEffect } from "react";
-import { UseFormRegister, FieldErrors } from "react-hook-form";
+import { UseFormRegister, FieldErrors, UseFormWatch } from "react-hook-form";
 import { CourseFormData, tokenOptions } from "../../schemas/courseForm";
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
 import { Button } from "@heroui/button";
 import { injected, useAccount, useConnect, useDisconnect } from "wagmi";
 
+// Import crypto icons
+import ethIcon from "@bitgo-forks/cryptocurrency-icons/svg/color/eth.svg";
+import usdcIcon from "@bitgo-forks/cryptocurrency-icons/svg/color/usdc.svg";
+import usdtIcon from "@bitgo-forks/cryptocurrency-icons/svg/color/usdt.svg";
+import maticIcon from "@bitgo-forks/cryptocurrency-icons/svg/color/matic.svg";
+
+// Token icon mapping
+const tokenIcons: Record<string, string> = {
+  ETH: ethIcon,
+  USDC: usdcIcon,
+  USDT: usdtIcon,
+  MATIC: maticIcon,
+};
+
 interface Web3ConfigurationProps {
   register: UseFormRegister<CourseFormData>;
   errors: FieldErrors<CourseFormData>;
   coursePrice: number;
   setValue?: (field: keyof CourseFormData, value: any) => void;
+  watch?: UseFormWatch<CourseFormData>;
 }
 
 const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
@@ -18,6 +33,7 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
   errors,
   coursePrice,
   setValue,
+  watch,
 }) => {
   const platformFee = 0.05; // 5%
   const platformFeeAmount = coursePrice * platformFee;
@@ -25,6 +41,7 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
   const { connect } = useConnect();
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const selectedToken = watch ? watch("paymentToken") : "ETH";
 
   // Auto-update walletAddress when wallet connects
   useEffect(() => {
@@ -132,9 +149,30 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
             classNames={{
               trigger: "bg-gray-100 border-0 rounded-lg px-3 py-2",
             }}
+            startContent={
+              selectedToken &&
+              tokenIcons[selectedToken] && (
+                <img
+                  src={tokenIcons[selectedToken]}
+                  alt={selectedToken}
+                  className="w-5 h-5"
+                />
+              )
+            }
           >
             {tokenOptions.map((option) => (
-              <SelectItem key={option.value}>{option.label}</SelectItem>
+              <SelectItem
+                key={option.value}
+                startContent={
+                  <img
+                    src={tokenIcons[option.value]}
+                    alt={option.value}
+                    className="w-5 h-5"
+                  />
+                }
+              >
+                {option.label}
+              </SelectItem>
             ))}
           </Select>
         </div>
@@ -158,7 +196,7 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
               }}
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
-              USDC
+              {selectedToken}
             </div>
           </div>
         </div>
@@ -192,13 +230,13 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
           <div className="flex justify-between items-center">
             <span className="text-base text-gray-700">Course Price</span>
             <span className="text-base font-medium text-neutral-950">
-              {coursePrice.toFixed(2)} USDC
+              {coursePrice.toFixed(2)} {selectedToken}
             </span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-base text-gray-700">Platform Fee</span>
             <span className="text-base font-medium text-red-600">
-              -{platformFeeAmount.toFixed(2)} USDC
+              -{platformFeeAmount.toFixed(2)} {selectedToken}
             </span>
           </div>
           <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
@@ -206,7 +244,7 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
               Your Revenue (per sale)
             </span>
             <span className="text-base font-medium text-green-600">
-              {revenue.toFixed(2)} USDC
+              {revenue.toFixed(2)} {selectedToken}
             </span>
           </div>
         </div>

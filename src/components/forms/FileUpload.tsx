@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import type { UseFormSetValue, FieldError } from "react-hook-form";
 
 export interface FileUploadProps {
@@ -9,6 +9,7 @@ export interface FileUploadProps {
   error?: FieldError;
   isRequired?: boolean;
   label?: string;
+  value?: File; // Current file from form
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -19,12 +20,26 @@ const FileUpload: React.FC<FileUploadProps> = ({
   error,
   isRequired = true,
   label = "Cover Image",
+  value,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string>("No file chosen");
   const [ipfsUrl, setIpfsUrl] = useState<string | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  // Restore preview when component mounts or value changes
+  useEffect(() => {
+    if (value instanceof File) {
+      setFileName(value.name);
+      setLocalPreview(URL.createObjectURL(value));
+    } else if (!value) {
+      // Clear preview if value is cleared externally
+      setFileName("No file chosen");
+      setLocalPreview(null);
+      setIpfsUrl(null);
+    }
+  }, [value]);
 
   const doUpload = useCallback(
     async (file: File) => {
