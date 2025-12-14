@@ -10,11 +10,11 @@ import { Input } from "@heroui/input";
 import { Textarea } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Select, SelectItem } from "@heroui/select";
-import FileUpload from "../components/FileUpload";
-import StepIndicator from "../components/StepIndicator";
-import Web3Configuration from "../components/Web3Configuration";
-import CourseContent from "../components/CourseContent";
-import CoursePreview from "../components/CoursePreview";
+import FileUpload from "../components/forms/FileUpload";
+import StepIndicator from "../components/layout/StepIndicator";
+import Web3Configuration from "../components/forms/Web3Configuration";
+import CourseContent from "../components/course/CourseContent";
+import CoursePreview from "../components/course/CoursePreview";
 import BackButton from "@/components/buttons/BackButton";
 import { useWriteContract, useAccount } from "wagmi";
 import { parseEther } from "viem";
@@ -140,7 +140,6 @@ const AddCourse: React.FC = () => {
     try {
       // Upload course content to IPFS using the service
       const { contentCid } = await createCourse(data, (message) => {
-        console.log("IPFS Upload Progress:", message);
         addToast({
           title: "Uploading to IPFS",
           description: message,
@@ -189,6 +188,21 @@ const AddCourse: React.FC = () => {
       });
       return;
     }
+
+    // Check if cover image is uploaded
+    const coverImage = watch("coverImage");
+    if (!coverImage) {
+      addToast({
+        title: "Cover Image Required",
+        description:
+          "Please upload a cover image in Step 1 before deploying your course.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      return;
+    }
+
     handleSubmit(onSubmit)();
   };
 
@@ -345,16 +359,17 @@ const AddCourse: React.FC = () => {
               {/* Navigation Buttons */}
               {currentStep < 4 && (
                 <div className="border-t border-gray-200 pt-6">
-                  <div className="flex justify-between">
-                    <Button
-                      className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50"
-                      disabled={currentStep === 1}
-                      size="md"
-                      variant="bordered"
-                      onPress={handleBack}
-                    >
-                      Back
-                    </Button>
+                  <div className="flex justify-end gap-3">
+                    {currentStep > 1 && (
+                      <Button
+                        className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50"
+                        size="md"
+                        variant="bordered"
+                        onPress={handleBack}
+                      >
+                        Back
+                      </Button>
+                    )}
                     <Button
                       className="bg-gray-900 rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
                       disabled={isSubmitting}

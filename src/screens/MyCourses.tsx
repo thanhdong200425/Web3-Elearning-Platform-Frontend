@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAccount, usePublicClient, useReadContract } from 'wagmi';
-import { elearningPlatformABI, elearningPlatformAddress } from '@/contracts/ElearningPlatform';
-import { addToast } from '@heroui/toast';
-import Header from '@/components/Header';
-import { Button } from '@heroui/button';
-import { formatEther } from 'viem';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAccount, usePublicClient, useReadContract } from "wagmi";
+import {
+  elearningPlatformABI,
+  elearningPlatformAddress,
+} from "@/contracts/ElearningPlatform";
+import { addToast } from "@heroui/toast";
+import Header from "@/components/layout/Header";
+import { Button } from "@heroui/button";
+import { formatEther } from "viem";
 
-const IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
+const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 
 interface Course {
   id: bigint;
@@ -34,8 +37,8 @@ const MyCourses: React.FC = () => {
   const { data: purchasedCourseIds } = useReadContract({
     address: elearningPlatformAddress,
     abi: elearningPlatformABI,
-    functionName: 'getPurchasedCourses',
-    args: [address || '0x0'],
+    functionName: "getPurchasedCourses",
+    args: [address || "0x0"],
     query: {
       enabled: !!address && isConnected,
     },
@@ -67,7 +70,7 @@ const MyCourses: React.FC = () => {
         publicClient.readContract({
           address: elearningPlatformAddress,
           abi: elearningPlatformABI,
-          functionName: 'courses',
+          functionName: "courses",
           args: [courseId],
         })
       );
@@ -96,11 +99,11 @@ const MyCourses: React.FC = () => {
 
       setCourses(fetchedCourses);
     } catch (err) {
-      console.error('Error fetching purchased courses:', err);
+      console.error("Error fetching purchased courses:", err);
       addToast({
-        title: 'Lỗi',
-        description: 'Không thể tải danh sách khóa học đã mua.',
-        color: 'danger',
+        title: "Lỗi",
+        description: "Không thể tải danh sách khóa học đã mua.",
+        color: "danger",
         timeout: 5000,
       });
     } finally {
@@ -129,7 +132,9 @@ const MyCourses: React.FC = () => {
         <Header />
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-lg font-medium text-gray-600">Đang tải khóa học của bạn...</p>
+          <p className="text-lg font-medium text-gray-600">
+            Đang tải khóa học của bạn...
+          </p>
         </div>
       </div>
     );
@@ -139,7 +144,9 @@ const MyCourses: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Khóa học của tôi</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">
+          Khóa học của tôi
+        </h1>
 
         {courses.length === 0 ? (
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
@@ -166,7 +173,7 @@ const MyCourses: React.FC = () => {
             </p>
             <Button
               className="bg-blue-600 text-white hover:bg-blue-700"
-              onPress={() => navigate('/')}
+              onPress={() => navigate("/")}
             >
               Khám phá khóa học
             </Button>
@@ -176,7 +183,7 @@ const MyCourses: React.FC = () => {
             {courses.map((course) => {
               const imageUrl = course.metadata?.imageCid
                 ? `${IPFS_GATEWAY}${course.metadata.imageCid}`
-                : 'https://via.placeholder.com/300x200';
+                : "https://via.placeholder.com/300x200";
               const priceInEth = formatEther(course.price);
 
               return (
@@ -195,7 +202,9 @@ const MyCourses: React.FC = () => {
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">
                       Giảng viên: {course.instructor.substring(0, 6)}...
-                      {course.instructor.substring(course.instructor.length - 4)}
+                      {course.instructor.substring(
+                        course.instructor.length - 4
+                      )}
                     </p>
                     {course.metadata?.category && (
                       <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mb-4">
@@ -226,4 +235,3 @@ const MyCourses: React.FC = () => {
 };
 
 export default MyCourses;
-

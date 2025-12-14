@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
-import { UseFormRegister, FieldErrors } from 'react-hook-form';
-import { CourseFormData, tokenOptions } from '../schemas/courseForm';
-import { Input } from '@heroui/input';
-import { Select, SelectItem } from '@heroui/select';
-import { Button } from '@heroui/button';
-import { injected, useAccount, useConnect, useDisconnect } from 'wagmi';
+import React, { useEffect } from "react";
+import { UseFormRegister, FieldErrors } from "react-hook-form";
+import { CourseFormData, tokenOptions } from "../../schemas/courseForm";
+import { Input } from "@heroui/input";
+import { Select, SelectItem } from "@heroui/select";
+import { Button } from "@heroui/button";
+import { injected, useAccount, useConnect, useDisconnect } from "wagmi";
 
 interface Web3ConfigurationProps {
   register: UseFormRegister<CourseFormData>;
@@ -30,21 +30,21 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
   useEffect(() => {
     if (address && setValue && isConnected) {
       console.log("Setting walletAddress to:", address);
-      setValue('walletAddress', address);
+      setValue("walletAddress", address);
     }
   }, [address, isConnected, setValue]);
 
   const handleConnectWallet = () => {
-    connect({ connector: injected() })
+    connect({ connector: injected() });
     if (address && setValue) {
-      setValue('walletAddress', address);
+      setValue("walletAddress", address);
     }
-  }
+  };
 
   const handleDisconnectWallet = () => {
     disconnect();
     if (setValue) {
-      setValue('walletAddress', '');
+      setValue("walletAddress", "");
     }
   };
 
@@ -94,14 +94,29 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
           </svg>
         </div>
         <p className="text-sm text-gray-600">
-          This course will be registered on the blockchain. Students will pay using cryptocurrency tokens.
+          This course will be registered on the blockchain. Students will pay
+          using cryptocurrency tokens.
         </p>
       </div>
 
       {/* Form Fields */}
       <div className="flex flex-col gap-4 flex-1">
         <div>
-          {!isConnected ? <Button className='bg-black text-white font-semibold' onPress={handleConnectWallet}>Connect Wallet</Button> : <Button className='bg-black text-white font-semibold' onPress={handleDisconnectWallet}>Disconnect wallet</Button>}
+          {!isConnected ? (
+            <Button
+              className="bg-black text-white font-semibold"
+              onPress={handleConnectWallet}
+            >
+              Connect Wallet
+            </Button>
+          ) : (
+            <Button
+              className="bg-black text-white font-semibold"
+              onPress={handleDisconnectWallet}
+            >
+              Disconnect wallet
+            </Button>
+          )}
         </div>
 
         {/* Payment Token */}
@@ -110,7 +125,7 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
             Payment Token
           </label>
           <Select
-            {...register('paymentToken')}
+            {...register("paymentToken")}
             placeholder="Select token"
             isInvalid={!!errors.paymentToken}
             errorMessage={errors.paymentToken?.message}
@@ -119,9 +134,7 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
             }}
           >
             {tokenOptions.map((option) => (
-              <SelectItem key={option.value}>
-                {option.label}
-              </SelectItem>
+              <SelectItem key={option.value}>{option.label}</SelectItem>
             ))}
           </Select>
         </div>
@@ -133,7 +146,7 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
           </label>
           <div className="relative">
             <Input
-              {...register('coursePrice', { valueAsNumber: true })}
+              {...register("coursePrice", { valueAsNumber: true })}
               type="number"
               step="0.01"
               placeholder="0.00"
@@ -156,9 +169,9 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
             Wallet Address
           </label>
           <Input
-            {...register('walletAddress')}
+            {...register("walletAddress")}
             placeholder="Your wallet address"
-            value={address ?? ''}
+            value={address ?? ""}
             disabled={!isConnected}
             isInvalid={!!errors.walletAddress}
             errorMessage={errors.walletAddress?.message}
@@ -167,8 +180,10 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
               inputWrapper: "bg-gray-50 border-0 rounded-lg px-3 py-2",
             }}
           />
-          <p className={`text-sm text-gray-500 ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
-            {isConnected ? `Connected wallet` : 'Not connected'}
+          <p
+            className={`text-sm text-gray-500 ${isConnected ? "text-green-600" : "text-red-600"}`}
+          >
+            {isConnected ? `Connected wallet` : "Not connected"}
           </p>
         </div>
 
@@ -230,7 +245,8 @@ const Web3Configuration: React.FC<Web3ConfigurationProps> = ({
             </svg>
           </div>
           <p className="text-sm text-blue-800">
-            Platform fee of 5% helps maintain the decentralized infrastructure and IPFS storage.
+            Platform fee of 5% helps maintain the decentralized infrastructure
+            and IPFS storage.
           </p>
         </div>
       </div>

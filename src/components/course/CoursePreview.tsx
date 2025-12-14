@@ -1,8 +1,8 @@
-import React from 'react';
-import { UseFormWatch } from 'react-hook-form';
-import { CourseFormData } from '../schemas/courseForm';
-import { Button } from '@heroui/button';
-import { useAccount } from 'wagmi';
+import React from "react";
+import { UseFormWatch } from "react-hook-form";
+import { CourseFormData } from "../../schemas/courseForm";
+import { Button } from "@heroui/button";
+import { useAccount } from "wagmi";
 
 interface CoursePreviewProps {
   watch: UseFormWatch<CourseFormData>;
@@ -10,7 +10,11 @@ interface CoursePreviewProps {
   isDeploying: boolean;
 }
 
-const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploying }) => {
+const CoursePreview: React.FC<CoursePreviewProps> = ({
+  watch,
+  onDeploy,
+  isDeploying,
+}) => {
   const formData = watch();
   const coursePrice = formData.coursePrice || 0;
   const platformFee = 0.05; // 5%
@@ -19,7 +23,11 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
   const { isConnected, address } = useAccount();
 
   const totalSections = formData.sections?.length || 0;
-  const totalLessons = formData.sections?.reduce((acc, section) => acc + (section.lessons?.length || 0), 0) || 0;
+  const totalLessons =
+    formData.sections?.reduce(
+      (acc, section) => acc + (section.lessons?.length || 0),
+      0
+    ) || 0;
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -68,7 +76,8 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
             </svg>
           </div>
           <p className="text-sm text-red-700 font-medium">
-            Wallet not connected! Please go back to Step 2 and connect your wallet before deploying.
+            Wallet not connected! Please go back to Step 2 and connect your
+            wallet before deploying.
           </p>
         </div>
       )}
@@ -108,20 +117,23 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
             </svg>
           </div>
           <p className="text-sm text-red-600">
-            This action will submit a transaction to the blockchain. You will need to pay a small gas fee to register your course.
+            This action will submit a transaction to the blockchain. You will
+            need to pay a small gas fee to register your course.
           </p>
         </div>
       )}
 
       {/* Course Overview Card */}
       <div className="bg-white border border-gray-200 rounded-[14px] p-6">
-        <h3 className="text-base font-medium text-neutral-950 mb-6">Course Overview</h3>
+        <h3 className="text-base font-medium text-neutral-950 mb-6">
+          Course Overview
+        </h3>
 
         <div className="space-y-4">
           <div>
             <p className="text-sm text-gray-600 mb-1">Course Title</p>
             <p className="text-base text-neutral-950">
-              {formData.title || 'Not set'}
+              {formData.title || "Not set"}
             </p>
           </div>
 
@@ -129,7 +141,7 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
             <p className="text-sm text-gray-600 mb-1">Category</p>
             <div className="inline-block">
               <span className="bg-gray-200 text-gray-900 text-xs px-2 py-1 rounded-lg">
-                {formData.category || 'Not set'}
+                {formData.category || "Not set"}
               </span>
             </div>
           </div>
@@ -137,14 +149,14 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
           <div>
             <p className="text-sm text-gray-600 mb-1">Short Description</p>
             <p className="text-sm text-neutral-950">
-              {formData.shortDescription || 'Not set'}
+              {formData.shortDescription || "Not set"}
             </p>
           </div>
 
           <div>
             <p className="text-sm text-gray-600 mb-1">Cover Image</p>
             <p className="text-sm text-neutral-950">
-              {formData.coverImage ? 'Image uploaded' : 'No image uploaded'}
+              {formData.coverImage ? "Image uploaded" : "No image uploaded"}
             </p>
           </div>
         </div>
@@ -152,20 +164,26 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
 
       {/* Pricing & Payment Card */}
       <div className="bg-white border border-gray-200 rounded-[14px] p-6">
-        <h3 className="text-base font-medium text-neutral-950 mb-6">Pricing & Payment</h3>
+        <h3 className="text-base font-medium text-neutral-950 mb-6">
+          Pricing & Payment
+        </h3>
 
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-base text-gray-600">Wallet Status</span>
-            <span className={`text-xs px-2 py-1 rounded-lg ${isConnected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {isConnected ? `Connected: ${address?.substring(0, 6)}...${address?.substring(address.length - 4)}` : 'Not Connected'}
+            <span
+              className={`text-xs px-2 py-1 rounded-lg ${isConnected ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+            >
+              {isConnected
+                ? `Connected: ${address?.substring(0, 6)}...${address?.substring(address.length - 4)}`
+                : "Not Connected"}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
             <span className="text-base text-gray-600">Payment Token</span>
             <span className="bg-gray-900 text-white text-xs px-2 py-1 rounded-lg">
-              {formData.paymentToken || 'USDC'}
+              {formData.paymentToken || "USDC"}
             </span>
           </div>
 
@@ -194,7 +212,9 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
 
       {/* Course Content Card */}
       <div className="bg-white border border-gray-200 rounded-[14px] p-6">
-        <h3 className="text-base font-medium text-neutral-950 mb-6">Course Content</h3>
+        <h3 className="text-base font-medium text-neutral-950 mb-6">
+          Course Content
+        </h3>
 
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -322,7 +342,9 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
               Ready to Deploy?
             </h3>
             <p className="text-sm text-blue-700 mb-4">
-              Clicking the button below will trigger a blockchain transaction. Your wallet (e.g., MetaMask) will prompt you to confirm the transaction and pay the gas fee.
+              Clicking the button below will trigger a blockchain transaction.
+              Your wallet (e.g., MetaMask) will prompt you to confirm the
+              transaction and pay the gas fee.
             </p>
 
             <Button
@@ -332,7 +354,11 @@ const CoursePreview: React.FC<CoursePreviewProps> = ({ watch, onDeploy, isDeploy
               disabled={isDeploying || !isConnected}
               className="bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 w-full"
             >
-              {isDeploying ? 'Deploying...' : !isConnected ? 'Connect Wallet First' : 'Deploy & Register Course Smart Contract'}
+              {isDeploying
+                ? "Deploying..."
+                : !isConnected
+                  ? "Connect Wallet First"
+                  : "Deploy & Register Course Smart Contract"}
             </Button>
           </div>
         </div>

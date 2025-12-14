@@ -29,20 +29,15 @@ export const createCourse = async (
       throw new Error("At least one section with lessons is required");
     }
 
-    // Step 1: Upload cover image if provided
-    let imageCid: string | undefined;
-    if (course.coverImage) {
-      try {
-        onProgress?.("Uploading course image to IPFS...");
-        imageCid = await uploadCourseImage(course.coverImage);
-      } catch (imageError) {
-        console.error(
-          "⚠️ Failed to upload image, continuing without image:",
-          imageError
-        );
-        // Continue without image if upload fails
-      }
+    // Validate cover image is uploaded
+    if (!course.coverImage) {
+      throw new Error("Cover image is required. Please upload a cover image before deploying.");
     }
+
+    // Step 1: Upload cover image to IPFS (required before deployment)
+    let imageCid: string | undefined;
+    onProgress?.("Uploading cover image to IPFS...");
+    imageCid = await uploadCourseImage(course.coverImage);
 
     // Step 2: Upload course content (sections and lessons)
     const contentCid = await uploadCourseContent(

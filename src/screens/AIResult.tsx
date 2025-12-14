@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@heroui/button";
 
-import Header from "@/components/Header";
+import Header from "@/components/layout/Header";
 import { Course } from "@/services/aiService";
 
 interface Lesson {
@@ -42,47 +42,47 @@ const AIResult: React.FC = () => {
   // Transform course data into modules format
   const initialModules: Module[] = courseData
     ? courseData.modules.map((module, index) => ({
-      id: module.id,
-      number: index + 1,
-      title: module.title,
-      lessons: module.lessons,
-      isExpanded: index === 0, // Expand first module by default
-    }))
+        id: module.id,
+        number: index + 1,
+        title: module.title,
+        lessons: module.lessons,
+        isExpanded: index === 0, // Expand first module by default
+      }))
     : [
-      {
-        id: "module-1",
-        number: 1,
-        title: "Foundations and Core Concepts",
-        isExpanded: true,
-        lessons: [
-          {
-            id: "lesson-1-1",
-            title: "Introduction to the Topic",
-            duration: "12 min",
-          },
-          {
-            id: "lesson-1-2",
-            title: "Key Terminology and Definitions",
-            duration: "8 min",
-          },
-          {
-            id: "lesson-1-3",
-            title: "Historical Context",
-            duration: "10 min",
-          },
-          {
-            id: "lesson-1-4",
-            title: "Knowledge Check",
-            duration: "5 min",
-            type: "quiz",
-          },
-        ],
-      },
-    ];
+        {
+          id: "module-1",
+          number: 1,
+          title: "Foundations and Core Concepts",
+          isExpanded: true,
+          lessons: [
+            {
+              id: "lesson-1-1",
+              title: "Introduction to the Topic",
+              duration: "12 min",
+            },
+            {
+              id: "lesson-1-2",
+              title: "Key Terminology and Definitions",
+              duration: "8 min",
+            },
+            {
+              id: "lesson-1-3",
+              title: "Historical Context",
+              duration: "10 min",
+            },
+            {
+              id: "lesson-1-4",
+              title: "Knowledge Check",
+              duration: "5 min",
+              type: "quiz",
+            },
+          ],
+        },
+      ];
 
   const [modules, setModules] = useState<Module[]>(initialModules);
   const [selectedLesson, setSelectedLesson] = useState<string>(
-    initialModules[0]?.lessons[0]?.id || "lesson-1-1",
+    initialModules[0]?.lessons[0]?.id || "lesson-1-1"
   );
 
   // Update modules when courseData changes
@@ -105,8 +105,8 @@ const AIResult: React.FC = () => {
   const toggleModule = (moduleId: string) => {
     setModules(
       modules.map((m) =>
-        m.id === moduleId ? { ...m, isExpanded: !m.isExpanded } : m,
-      ),
+        m.id === moduleId ? { ...m, isExpanded: !m.isExpanded } : m
+      )
     );
   };
 
@@ -202,8 +202,9 @@ const AIResult: React.FC = () => {
                         <button
                           key={lesson.id}
                           onClick={() => setSelectedLesson(lesson.id)}
-                          className={`w-full pl-12 pr-6 py-4 flex items-center gap-3 text-left transition-colors ${isActive ? "bg-slate-100" : "hover:bg-slate-50"
-                            }`}
+                          className={`w-full pl-12 pr-6 py-4 flex items-center gap-3 text-left transition-colors ${
+                            isActive ? "bg-slate-100" : "hover:bg-slate-50"
+                          }`}
                         >
                           <div className="flex-shrink-0">
                             {isCompleted ? (
@@ -214,10 +215,11 @@ const AIResult: React.FC = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p
-                              className={`text-sm mb-1 ${isActive
+                              className={`text-sm mb-1 ${
+                                isActive
                                   ? "text-[#0f172b] font-medium"
                                   : "text-[#314158]"
-                                }`}
+                              }`}
                             >
                               {lesson.title}
                             </p>
@@ -357,7 +359,7 @@ const AIResult: React.FC = () => {
                                   {concept.description}
                                 </p>
                               </div>
-                            ),
+                            )
                           )}
                         </div>
                       </div>
