@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -10,20 +10,17 @@ import { Input } from "@heroui/input";
 import { Textarea } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { Select, SelectItem } from "@heroui/select";
-import FileUpload from "../components/FileUpload";
-import StepIndicator from "../components/StepIndicator";
-import Web3Configuration from "../components/Web3Configuration";
-import CourseContent from "../components/CourseContent";
-import CoursePreview from "../components/CoursePreview";
+import FileUpload from "../components/forms/FileUpload";
+import StepIndicator from "../components/layout/StepIndicator";
+import Web3Configuration from "../components/forms/Web3Configuration";
+import CourseContent from "../components/course/CourseContent";
+import CoursePreview from "../components/course/CoursePreview";
 import BackButton from "@/components/buttons/BackButton";
 import { useWriteContract, useAccount } from "wagmi";
 import { parseEther } from "viem";
 import { addToast } from "@heroui/toast";
-import {
-  uploadCourseContent,
-  uploadCourseImage,
-  uploadCourseMetadata,
-} from "@/services/ipfs";
+import { createCourse } from "@/services/courseService";
+import { validateCourseForDeployment } from "@/utils/courseValidation";
 
 import {
   elearningPlatformABI,
@@ -67,6 +64,7 @@ const AddCourse: React.FC = () => {
     register,
     handleSubmit,
     setValue,
+    getValues,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<CourseFormData>({
@@ -77,7 +75,7 @@ const AddCourse: React.FC = () => {
       detailedDescription: "",
       category: "",
       coverImage: undefined,
-      paymentToken: "USDC",
+      paymentToken: "ETH",
       coursePrice: 0,
       walletAddress: "",
       sections: [],
@@ -100,7 +98,7 @@ const AddCourse: React.FC = () => {
   const coursePrice = watch("coursePrice") || 0;
 
   // Handle write errors
-  React.useEffect(() => {
+  useEffect(() => {
     if (writeError) {
       console.error("Deployment failed:", writeError);
       addToast({
@@ -116,7 +114,7 @@ const AddCourse: React.FC = () => {
   }, [writeError]);
 
   // Handle success
-  React.useEffect(() => {
+  useEffect(() => {
     if (isSuccess && hash) {
       addToast({
         title: "Success",
@@ -141,100 +139,19 @@ const AddCourse: React.FC = () => {
       return;
     }
 
-    // Validate required fields
-    if (!data.title || !data.coursePrice || data.coursePrice <= 0) {
-      addToast({
-        title: "Validation Error",
-        description:
-          "Please fill in all required fields including course title and price.",
-        color: "danger",
-        timeout: 3000,
-        shouldShowTimeoutProgress: true,
-      });
-      return;
-    }
-
-    // Validate course content
-    if (!data.sections || data.sections.length === 0) {
-      addToast({
-        title: "Validation Error",
-        description:
-          "Please add at least one section with lessons before deploying.",
-        color: "danger",
-        timeout: 3000,
-        shouldShowTimeoutProgress: true,
-      });
-      return;
-    }
-
     try {
-      // Step 1: Upload course content to IPFS
-      addToast({
-        title: "Uploading to IPFS",
-        description: "Đang upload nội dung khóa học lên IPFS...",
-        color: "default",
-        timeout: 10000,
-        shouldShowTimeoutProgress: true,
+      // Upload course content to IPFS using the service
+      const { contentCid } = await createCourse(data, (message) => {
+        addToast({
+          title: "Uploading to IPFS",
+          description: message,
+          color: "default",
+          timeout: 2000,
+          shouldShowTimeoutProgress: true,
+        });
       });
 
-      console.log("📤 Starting IPFS upload process...");
-      console.log("📋 Course data:", {
-        title: data.title,
-        sectionsCount: data.sections?.length || 0,
-        hasImage: !!data.coverImage,
-      });
-
-      // Step 1: Upload cover image first if provided (so we can include it in content.json)
-      let imageCid: string | undefined;
-      if (data.coverImage) {
-        try {
-          addToast({
-            title: "Uploading Image",
-            description: "Đang upload hình ảnh khóa học...",
-            color: "default",
-            timeout: 5000,
-            shouldShowTimeoutProgress: true,
-          });
-          imageCid = await uploadCourseImage(data.coverImage);
-          console.log("✅ Course image uploaded. CID:", imageCid);
-        } catch (imageError) {
-          console.warn(
-            "⚠️ Failed to upload image, continuing without image:",
-            imageError
-          );
-          // Continue without image if upload fails
-        }
-      }
-
-      // Step 2: Upload course content (sections and lessons) with imageCid included
-      const contentCid = await uploadCourseContent(
-        data.sections || [],
-        imageCid
-      );
-      console.log("✅ Course content uploaded. CID:", contentCid);
-
-      // Step 3: Upload metadata (optional, for better organization)
-      let metadataCid: string | undefined;
-      try {
-        const metadata = {
-          title: data.title,
-          description: data.detailedDescription || data.shortDescription,
-          shortDescription: data.shortDescription,
-          imageCid: imageCid,
-          category: data.category,
-          rating: 0, // Default rating
-        };
-        metadataCid = await uploadCourseMetadata(metadata);
-        console.log("✅ Course metadata uploaded. CID:", metadataCid);
-      } catch (metadataError) {
-        console.warn(
-          "⚠️ Failed to upload metadata, continuing with content CID only:",
-          metadataError
-        );
-        // Continue with content CID only
-      }
-
-      // Step 4: Deploy to smart contract with real CID
+      // Deploy to smart contract with the content CID
       addToast({
         title: "Deploying to Blockchain",
         description: "Đang deploy khóa học lên blockchain...",
@@ -243,30 +160,16 @@ const AddCourse: React.FC = () => {
         shouldShowTimeoutProgress: true,
       });
 
-      // Use contentCid as the main CID for the course
-      // This is what will be used to fetch course content
       writeContract({
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
         functionName: "createCourse",
-        args: [
-          data.title,
-          parseEther(data.coursePrice.toString()),
-          contentCid, // ✅ Sử dụng CID thực tế từ IPFS upload
-        ],
+        args: [data.title, parseEther(data.coursePrice.toString()), contentCid],
       });
 
-      console.log("✅ Course deployment initiated with CID:", contentCid);
+      console.log("Error message:", writeError);
     } catch (error) {
       console.error("❌ Deployment failed:", error);
-      addToast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        color: "danger",
-        timeout: 5000,
-        shouldShowTimeoutProgress: true,
-      });
     }
   };
 
@@ -277,16 +180,40 @@ const AddCourse: React.FC = () => {
   };
 
   const handleDeploy = async () => {
-    if (!isConnected) {
+    // Trigger validation for all fields
+    await handleSubmit(
+      () => {}, // Empty success callback
+      () => {} // Empty error callback
+    )();
+
+    // Get all current form values and errors
+    const formData = getValues();
+
+    // Validate all steps
+    const validationResult = validateCourseForDeployment(
+      formData,
+      errors,
+      isConnected
+    );
+
+    // If validation fails, show error and redirect to the appropriate step
+    if (!validationResult.isValid) {
       addToast({
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet in Step 2 before deploying.",
+        title: validationResult.title || "Validation Error",
+        description:
+          validationResult.message || "Please fix the errors before deploying.",
         color: "danger",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
+
+      if (validationResult.step) {
+        setCurrentStep(validationResult.step);
+      }
       return;
     }
+
+    // If all validations pass, proceed with deployment
     handleSubmit(onSubmit)();
   };
 
@@ -411,9 +338,10 @@ const AddCourse: React.FC = () => {
                     <FileUpload
                       accept="image/*"
                       error={errors.coverImage}
-                      isRequired={false}
+                      isRequired={true}
                       name="coverImage"
                       setValue={setValue}
+                      value={getValues("coverImage")}
                     />
                   </div>
                 </>
@@ -425,6 +353,7 @@ const AddCourse: React.FC = () => {
                   errors={errors}
                   register={register}
                   setValue={setValue}
+                  watch={watch}
                 />
               )}
 
@@ -443,16 +372,17 @@ const AddCourse: React.FC = () => {
               {/* Navigation Buttons */}
               {currentStep < 4 && (
                 <div className="border-t border-gray-200 pt-6">
-                  <div className="flex justify-between">
-                    <Button
-                      className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50"
-                      disabled={currentStep === 1}
-                      size="md"
-                      variant="bordered"
-                      onPress={handleBack}
-                    >
-                      Back
-                    </Button>
+                  <div className="flex justify-end gap-3">
+                    {currentStep > 1 && (
+                      <Button
+                        className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50"
+                        size="md"
+                        variant="bordered"
+                        onPress={handleBack}
+                      >
+                        Back
+                      </Button>
+                    )}
                     <Button
                       className="bg-gray-900 rounded-lg px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
                       disabled={isSubmitting}

@@ -1,14 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { usePublicClient, useAccount, useReadContract, useWriteContract } from 'wagmi';
-import { formatEther, parseEther } from 'viem';
-import { elearningPlatformABI, elearningPlatformAddress } from '@/contracts/ElearningPlatform';
-import { addToast } from '@heroui/toast';
-import { Button } from '@heroui/button';
-import Header from '@/components/Header';
-import BackButton from '@/components/buttons/BackButton';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  usePublicClient,
+  useAccount,
+  useReadContract,
+  useWriteContract,
+} from "wagmi";
+import { formatEther, parseEther } from "viem";
+import {
+  elearningPlatformABI,
+  elearningPlatformAddress,
+} from "@/contracts/ElearningPlatform";
+import { addToast } from "@heroui/toast";
+import { Button } from "@heroui/button";
+import Header from "@/components/layout/Header";
+import BackButton from "@/components/buttons/BackButton";
 
-const IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
+const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 
 interface Course {
   id: bigint;
@@ -30,7 +38,12 @@ const CourseDetail: React.FC = () => {
   const navigate = useNavigate();
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
-  const { writeContract, isPending, isSuccess, error: writeError } = useWriteContract();
+  const {
+    writeContract,
+    isPending,
+    isSuccess,
+    error: writeError,
+  } = useWriteContract();
 
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,8 +54,8 @@ const CourseDetail: React.FC = () => {
   const { data: courseData } = useReadContract({
     address: elearningPlatformAddress,
     abi: elearningPlatformABI,
-    functionName: 'courses',
-    args: [BigInt(courseId || '0')],
+    functionName: "courses",
+    args: [BigInt(courseId || "0")],
     query: {
       enabled: !!courseId,
     },
@@ -52,8 +65,8 @@ const CourseDetail: React.FC = () => {
   const { data: purchased } = useReadContract({
     address: elearningPlatformAddress,
     abi: elearningPlatformABI,
-    functionName: 'hasPurchasedCourse',
-    args: [address || '0x0', BigInt(courseId || '0')],
+    functionName: "hasPurchasedCourse",
+    args: [address || "0x0", BigInt(courseId || "0")],
     query: {
       enabled: !!courseId && !!address && isConnected,
     },
@@ -62,25 +75,25 @@ const CourseDetail: React.FC = () => {
   useEffect(() => {
     if (courseData) {
       const [id, instructor, price, title, contentCid] = courseData;
-      
+
       // Fetch content from IPFS (which may include imageCid)
       const fetchCourseData = async () => {
         try {
           // Fetch content.json from IPFS
           const contentUrl = `${IPFS_GATEWAY}${contentCid}`;
           const contentRes = await fetch(contentUrl);
-          
+
           let metadata = undefined;
           let imageCid: string | undefined;
-          
+
           if (contentRes.ok) {
             const contentData = await contentRes.json();
-            
+
             // Extract imageCid from content.json if available
             if (contentData.imageCid) {
               imageCid = contentData.imageCid;
             }
-            
+
             // Try to fetch metadata separately (for backward compatibility)
             try {
               // Note: metadataCid is not stored in contract, so we skip this for now
@@ -88,7 +101,7 @@ const CourseDetail: React.FC = () => {
             } catch (metaErr) {
               // Metadata fetch is optional
             }
-            
+
             // Create metadata object with imageCid
             if (imageCid) {
               metadata = {
@@ -100,7 +113,7 @@ const CourseDetail: React.FC = () => {
               };
             }
           }
-          
+
           setCourse({
             id,
             instructor,
@@ -110,7 +123,7 @@ const CourseDetail: React.FC = () => {
             metadata,
           });
         } catch (err) {
-          console.error('Error fetching course data:', err);
+          console.error("Error fetching course data:", err);
           setCourse({
             id,
             instructor,
@@ -122,7 +135,7 @@ const CourseDetail: React.FC = () => {
           setLoading(false);
         }
       };
-      
+
       fetchCourseData();
     }
   }, [courseData]);
@@ -137,9 +150,10 @@ const CourseDetail: React.FC = () => {
   useEffect(() => {
     if (writeError) {
       addToast({
-        title: 'Lỗi',
-        description: writeError.message || 'Không thể mua khóa học. Vui lòng thử lại.',
-        color: 'danger',
+        title: "Lỗi",
+        description:
+          writeError.message || "Không thể mua khóa học. Vui lòng thử lại.",
+        color: "danger",
         timeout: 5000,
       });
     }
@@ -148,9 +162,9 @@ const CourseDetail: React.FC = () => {
   useEffect(() => {
     if (isSuccess) {
       addToast({
-        title: 'Thành công',
-        description: 'Bạn đã mua khóa học thành công!',
-        color: 'success',
+        title: "Thành công",
+        description: "Bạn đã mua khóa học thành công!",
+        color: "success",
         timeout: 5000,
       });
       setHasPurchased(true);
@@ -164,9 +178,9 @@ const CourseDetail: React.FC = () => {
   const handlePurchase = async () => {
     if (!isConnected) {
       addToast({
-        title: 'Chưa kết nối ví',
-        description: 'Vui lòng kết nối ví để mua khóa học.',
-        color: 'danger',
+        title: "Chưa kết nối ví",
+        description: "Vui lòng kết nối ví để mua khóa học.",
+        color: "danger",
         timeout: 3000,
       });
       return;
@@ -180,12 +194,12 @@ const CourseDetail: React.FC = () => {
       writeContract({
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
-        functionName: 'purchaseCourse',
+        functionName: "purchaseCourse",
         args: [course.id],
         value: course.price,
       });
     } catch (error) {
-      console.error('Purchase error:', error);
+      console.error("Purchase error:", error);
     }
   };
 
@@ -211,7 +225,7 @@ const CourseDetail: React.FC = () => {
         <Header />
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <p className="text-xl text-gray-600">Không tìm thấy khóa học</p>
-          <BackButton onBack={() => navigate('/')} />
+          <BackButton onBack={() => navigate("/")} />
         </div>
       </div>
     );
@@ -219,7 +233,7 @@ const CourseDetail: React.FC = () => {
 
   const imageUrl = course.metadata?.imageCid
     ? `${IPFS_GATEWAY}${course.metadata.imageCid}`
-    : 'https://via.placeholder.com/800x400';
+    : "https://via.placeholder.com/800x400";
   const priceInEth = formatEther(course.price);
 
   return (
@@ -227,7 +241,7 @@ const CourseDetail: React.FC = () => {
       <Header />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <BackButton onBack={() => navigate('/')} />
+          <BackButton onBack={() => navigate("/")} />
         </div>
 
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -246,12 +260,13 @@ const CourseDetail: React.FC = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
                 {course.title}
               </h1>
-              
+
               <div className="flex flex-wrap items-center gap-4 mb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">Giảng viên:</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {course.instructor.substring(0, 6)}...{course.instructor.substring(course.instructor.length - 4)}
+                    {course.instructor.substring(0, 6)}...
+                    {course.instructor.substring(course.instructor.length - 4)}
                   </span>
                 </div>
                 {course.metadata?.category && (
@@ -262,7 +277,9 @@ const CourseDetail: React.FC = () => {
                 {course.metadata?.rating && (
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-500">★</span>
-                    <span className="text-sm font-medium">{course.metadata.rating.toFixed(1)}</span>
+                    <span className="text-sm font-medium">
+                      {course.metadata.rating.toFixed(1)}
+                    </span>
                   </div>
                 )}
               </div>
@@ -283,14 +300,15 @@ const CourseDetail: React.FC = () => {
               </div>
             )}
 
-            {course.metadata?.shortDescription && !course.metadata?.description && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-3">Mô tả khóa học</h2>
-                <p className="text-gray-700 leading-relaxed">
-                  {course.metadata.shortDescription}
-                </p>
-              </div>
-            )}
+            {course.metadata?.shortDescription &&
+              !course.metadata?.description && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold mb-3">Mô tả khóa học</h2>
+                  <p className="text-gray-700 leading-relaxed">
+                    {course.metadata.shortDescription}
+                  </p>
+                </div>
+              )}
 
             {/* Purchase Button */}
             <div className="mt-8 pt-6 border-t border-gray-200">
@@ -324,7 +342,9 @@ const CourseDetail: React.FC = () => {
                     onPress={handlePurchase}
                     disabled={!isConnected || isPending}
                   >
-                    {isPending ? 'Đang xử lý...' : `Mua khóa học - ${priceInEth} ETH`}
+                    {isPending
+                      ? "Đang xử lý..."
+                      : `Mua khóa học - ${priceInEth} ETH`}
                   </Button>
                 </div>
               )}
@@ -337,4 +357,3 @@ const CourseDetail: React.FC = () => {
 };
 
 export default CourseDetail;
-

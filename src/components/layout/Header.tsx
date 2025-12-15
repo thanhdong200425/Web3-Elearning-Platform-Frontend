@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BookOpen, Plus, Brain, User } from "lucide-react";
 import { useAccount } from "wagmi";
-import ConnectWalletButton from "./buttons/ConnectWalletButton";
+import ConnectWalletButton from "../buttons/ConnectWalletButton";
 
 const Header: React.FC = () => {
   const { isConnected } = useAccount();

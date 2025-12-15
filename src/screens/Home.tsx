@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract, useChainId } from "wagmi";
 import { addToast } from "@heroui/toast";
 import {
   elearningPlatformABI,
   elearningPlatformAddress,
 } from "@/contracts/ElearningPlatform";
-import Header from "@/components/Header";
-import PartnerLogosSection from "@/components/PartnerLogosSection";
-import TrendingSection from "@/components/TrendingSection";
-import HotReleasesSection from "@/components/HotReleasesSection";
-import AllCoursesSection from "@/components/AllCoursesSection";
-import CategoriesSection from "@/components/CategoriesSection";
+import Header from "@/components/layout/Header";
+import PartnerLogosSection from "@/components/sections/PartnerLogosSection";
+import TrendingSection from "@/components/sections/TrendingSection";
+import HotReleasesSection from "@/components/sections/HotReleasesSection";
+import AllCoursesSection from "@/components/sections/AllCoursesSection";
+import CategoriesSection from "@/components/sections/CategoriesSection";
 import { categoryOptions } from "../schemas/courseForm";
 
 interface OnChainCourse {
@@ -35,6 +35,7 @@ const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 const Home: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const chainId = useChainId();
 
   // Read all courses from contract
   const {
@@ -65,11 +66,16 @@ const Home: React.FC = () => {
           ? readError.message.split("\n")[0] // Lấy dòng đầu tiên của thông báo lỗi
           : "Lỗi không xác định khi tải từ Blockchain.";
 
-        console.error("❌ Lỗi đọc getAllCourses:", readError);
+        console.error("❌ Lỗi đọc getAllCourse:", readError);
+        console.log("🔍 Current chain:", "Chain ID:", chainId);
+        console.log("📍 Contract address:", elearningPlatformAddress);
 
         addToast({
           title: "Lỗi Blockchain",
-          description: `Không thể tải danh sách khóa học: ${errorDescription}`,
+          description:
+            chainId === 31337
+              ? `Không thể tải danh sách khóa học: ${errorDescription}`
+              : `⚠️ Sai mạng! Vui lòng chuyển sang mạng Localhost (Chain ID: 31337). Hiện tại: Chain ID: ${chainId || "Unknown"}`,
           color: "danger",
         });
 
@@ -130,7 +136,7 @@ const Home: React.FC = () => {
     };
 
     fetchMetadataAndSetState();
-  }, [onChainCourses, isLoadingOnChain, isReadError, readError]); // Thêm readError vào dependency array
+  }, [onChainCourses, isLoadingOnChain, isReadError, readError, chainId]); // Thêm chain vào dependency array
 
   if (loading) {
     return (
