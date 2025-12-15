@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { BookOpen, Plus, Brain, User } from "lucide-react";
 import { useAccount } from "wagmi";
+import ConnectWalletButton from "./buttons/ConnectWalletButton";
 
 const Header: React.FC = () => {
   const { isConnected } = useAccount();
@@ -59,11 +60,10 @@ const Header: React.FC = () => {
         {/* Navigation */}
         <nav className="flex items-center gap-2">
           <Link
-            className={`h-9 px-3 rounded-lg flex items-center gap-2 ${
-              isCoursesPage
-                ? "bg-[#030213] text-white"
-                : "text-neutral-950 hover:bg-gray-50"
-            }`}
+            className={`h-9 px-3 rounded-lg flex items-center gap-2 ${isCoursesPage
+              ? "bg-[#030213] text-white"
+              : "text-neutral-950 hover:bg-gray-50"
+              }`}
             to="/"
           >
             <BookOpen className="w-4 h-4" />
@@ -79,11 +79,10 @@ const Header: React.FC = () => {
                 <span className="text-sm font-normal">Create Course</span>
               </Link>
               <Link
-                className={`h-9 px-3 rounded-lg flex items-center gap-2 ${
-                  location.pathname === "/ai-tutor"
-                    ? "bg-[#030213] text-white"
-                    : "text-neutral-950 hover:bg-gray-50"
-                }`}
+                className={`h-9 px-3 rounded-lg flex items-center gap-2 ${location.pathname === "/ai-tutor"
+                  ? "bg-[#030213] text-white"
+                  : "text-neutral-950 hover:bg-gray-50"
+                  }`}
                 to="/ai-tutor"
               >
                 <Brain className="w-4 h-4" />
@@ -98,6 +97,11 @@ const Header: React.FC = () => {
               </Link>
             </>
           )}
+
+          {/* Connect Wallet Button */}
+          <div className="ml-2 pl-2 border-l border-slate-200">
+            <ConnectWalletButton />
+          </div>
         </nav>
       </div>
     </header>

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { sepolia } from "wagmi/chains";
-import { injected } from "wagmi/connectors";
+
 
 declare module "@react-types/shared" {
   interface RouterConfig {
