@@ -6,6 +6,7 @@ import { createConfig, http, WagmiProvider } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { sepolia } from "wagmi/chains";
 import { defineChain } from "viem";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 declare module "@react-types/shared" {
   interface RouterConfig {
@@ -38,7 +39,9 @@ export function Provider({ children }: { children: React.ReactNode }) {
     <HeroUIProvider navigate={navigate} useHref={useHref}>
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </QueryClientProvider>
       </WagmiProvider>
     </HeroUIProvider>
