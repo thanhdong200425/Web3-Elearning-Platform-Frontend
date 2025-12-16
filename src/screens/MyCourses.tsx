@@ -101,8 +101,8 @@ const MyCourses: React.FC = () => {
     } catch (err) {
       console.error("Error fetching purchased courses:", err);
       addToast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách khóa học đã mua.",
+        title: "Error",
+        description: "Cannot load purchased courses.",
         color: "danger",
         timeout: 5000,
       });
@@ -118,7 +118,7 @@ const MyCourses: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
             <p className="text-yellow-800">
-              Vui lòng kết nối ví để xem các khóa học đã mua.
+              Please connect your wallet to view purchased courses.
             </p>
           </div>
         </div>
@@ -133,7 +133,7 @@ const MyCourses: React.FC = () => {
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
           <p className="text-lg font-medium text-gray-600">
-            Đang tải khóa học của bạn...
+            Loading your courses...
           </p>
         </div>
       </div>
@@ -145,7 +145,7 @@ const MyCourses: React.FC = () => {
       <Header />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Khóa học của tôi
+          My Courses
         </h1>
 
         {courses.length === 0 ? (
@@ -166,16 +166,16 @@ const MyCourses: React.FC = () => {
               </svg>
             </div>
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-              Bạn chưa mua khóa học nào
+              You haven't purchased any courses yet
             </h2>
             <p className="text-gray-600 mb-6">
-              Hãy khám phá và mua khóa học đầu tiên của bạn!
+              Explore and buy your first course!
             </p>
             <Button
               className="bg-blue-600 text-white hover:bg-blue-700"
               onPress={() => navigate("/")}
             >
-              Khám phá khóa học
+              Explore Courses
             </Button>
           </div>
         ) : (
@@ -201,7 +201,7 @@ const MyCourses: React.FC = () => {
                       {course.title}
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Giảng viên: {course.instructor.substring(0, 6)}...
+                      Instructor: {course.instructor.substring(0, 6)}...
                       {course.instructor.substring(
                         course.instructor.length - 4
                       )}
@@ -220,7 +220,7 @@ const MyCourses: React.FC = () => {
                         className="bg-blue-600 text-white hover:bg-blue-700"
                         onPress={() => navigate(`/course/${course.id}/view`)}
                       >
-                        Xem khóa học
+                        View Course
                       </Button>
                     </div>
                   </div>

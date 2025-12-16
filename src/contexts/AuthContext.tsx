@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import { SiweMessage } from 'siwe';
+import { addToast } from "@heroui/toast";
 
 // Constants
 const SIWE_SESSION_KEY = 'siwe_session';
@@ -97,12 +98,44 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
     }, [address, isConnected]);
 
+    const [preventSignInPrompt, setPreventSignInPrompt] = useState(false);
+
     // Auto-prompt sign-in when wallet connects but not authenticated
     useEffect(() => {
+        if (preventSignInPrompt) return;
+
         if (isConnected && address && !session && !isAuthenticating) {
             setShowSignInModal(true);
         }
-    }, [isConnected, address, session, isAuthenticating]);
+    }, [isConnected, address, session, isAuthenticating, preventSignInPrompt]);
+
+    // Reset prevention flag when disconnected
+    useEffect(() => {
+        if (!isConnected) {
+            setPreventSignInPrompt(false);
+        }
+    }, [isConnected]);
+
+    // Check session expiry periodically
+    useEffect(() => {
+        if (!session) return;
+
+        const checkExpiry = () => {
+            if (Date.now() > session.expiresAt) {
+                console.log('Session expired, clearing...');
+                clearSession();
+                setSession(null);
+                addToast({
+                    title: "Session Expired",
+                    description: "Your session has expired. Please sign in again.",
+                    color: "warning"
+                });
+            }
+        };
+
+        const interval = setInterval(checkExpiry, 60 * 1000); // Check every minute
+        return () => clearInterval(interval);
+    }, [session]);
 
     const signIn = useCallback(async () => {
         if (!address || !chainId) {
@@ -135,7 +168,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
             // Verify signature client-side
             const verifiedMessage = new SiweMessage(message);
-            await verifiedMessage.verify({ signature });
+            await verifiedMessage.verify({
+                signature,
+                domain: window.location.host,
+            });
 
             // Create and store session
             const newSession: SiweSession = {
@@ -160,6 +196,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }, [address, chainId, signMessageAsync]);
 
     const signOut = useCallback(() => {
+        setPreventSignInPrompt(true);
         clearSession();
         setSession(null);
         disconnect();

@@ -60,22 +60,22 @@ const Home: React.FC = () => {
         return;
       }
 
-      // Xử lý lỗi đọc contract
+      // Handle contract read error
       if (isReadError) {
         const errorDescription = readError
-          ? readError.message.split("\n")[0] // Lấy dòng đầu tiên của thông báo lỗi
-          : "Lỗi không xác định khi tải từ Blockchain.";
+          ? readError.message.split("\n")[0] // Get first line of error message
+          : "Unknown error loading from Blockchain.";
 
-        console.error("❌ Lỗi đọc getAllCourse:", readError);
+        console.error("❌ Error reading getAllCourse:", readError);
         console.log("🔍 Current chain:", "Chain ID:", chainId);
         console.log("📍 Contract address:", elearningPlatformAddress);
 
         addToast({
-          title: "Lỗi Blockchain",
+          title: "Blockchain Error",
           description:
             chainId === 31337
-              ? `Không thể tải danh sách khóa học: ${errorDescription}`
-              : `⚠️ Sai mạng! Vui lòng chuyển sang mạng Localhost (Chain ID: 31337). Hiện tại: Chain ID: ${chainId || "Unknown"}`,
+              ? `Cannot load course list: ${errorDescription}`
+              : `⚠️ Wrong network! Please switch to Localhost (Chain ID: 31337). Current: Chain ID: ${chainId || "Unknown"}`,
           color: "danger",
         });
 
@@ -101,7 +101,7 @@ const Home: React.FC = () => {
               if (res.ok) {
                 const data = await res.json();
 
-                // Đảm bảo rating là số và có giá trị mặc định
+                // Ensure rating is a number and has default value
                 metadata = {
                   ...data,
                   rating: Number(data.rating) || 4.5,
@@ -109,7 +109,7 @@ const Home: React.FC = () => {
               }
             } catch (err) {
               console.warn(
-                `⚠️ Lỗi tải metadata từ IPFS (${course.contentCid}):`,
+                `⚠️ Error loading metadata from IPFS (${course.contentCid}):`,
                 err
               );
             }
@@ -118,16 +118,16 @@ const Home: React.FC = () => {
           })
         );
 
-        // TypeScript guard: lọc ra các phần tử không phải là Course (nếu có lỗi logic)
+        // TypeScript guard: filter out non-Course items (if logic error)
         setCourses(fetchedCourses.filter(Boolean) as Course[]);
       } catch (err) {
-        console.error("❌ Lỗi fetch metadata:", err);
-        // Nếu lỗi fetch metadata, vẫn hiển thị các khóa học on-chain nếu có
+        console.error("❌ Error fetching metadata:", err);
+        // If metadata fetch fails, still show on-chain courses if available
         setCourses(onChainCourses.map((c) => ({ ...c, metadata: undefined })));
         addToast({
-          title: "Lỗi",
+          title: "Error",
           description:
-            "Không thể tải metadata từ IPFS. Dữ liệu hiển thị có thể thiếu.",
+            "Cannot load metadata from IPFS. Displayed data might be incomplete.",
           color: "warning",
         });
       } finally {
@@ -136,14 +136,14 @@ const Home: React.FC = () => {
     };
 
     fetchMetadataAndSetState();
-  }, [onChainCourses, isLoadingOnChain, isReadError, readError, chainId]); // Thêm chain vào dependency array
+  }, [onChainCourses, isLoadingOnChain, isReadError, readError, chainId]); // Add chain to dependency array
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-600">
         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
         <p className="text-lg font-medium">
-          Đang tải khóa học từ blockchain & IPFS...
+          Loading courses from blockchain & IPFS...
         </p>
       </div>
     );
@@ -163,14 +163,14 @@ const Home: React.FC = () => {
       ) : (
         <div className="text-center py-20 px-8">
           <p className="text-xl text-gray-600">
-            {/* Hiển thị thông báo phù hợp khi có lỗi */}
+            {/* Show appropriate message on error */}
             {isReadError ? (
               <>
-                Không thể tải dữ liệu. Vui lòng kiểm tra lại **kết nối mạng** và
-                **địa chỉ contract**.
+                Cannot load data. Please check your **network connection** and
+                **contract address**.
               </>
             ) : (
-              <>Chưa có khóa học nào được tạo. Hãy tạo khóa học đầu tiên!</>
+              <>No courses created yet. Be the first to create one!</>
             )}
           </p>
         </div>

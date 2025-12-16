@@ -64,7 +64,7 @@ const CourseViewer: React.FC = () => {
   const fetchCourseContent = React.useCallback(async () => {
     if (!contentCid) {
       console.error("❌ Content CID is null or undefined");
-      setError("Không tìm thấy CID của khóa học");
+      setError("Course content CID not found");
       setLoading(false);
       return;
     }
@@ -112,9 +112,9 @@ const CourseViewer: React.FC = () => {
         }
 
         throw new Error(
-          `Không thể tải nội dung từ IPFS. Status: ${response.status}. ` +
-            `CID: ${contentCid}. ` +
-            `Có thể file content.json chưa được upload lên IPFS hoặc CID không đúng.`
+          `Cannot load content from IPFS. Status: ${response.status}. ` +
+          `CID: ${contentCid}. ` +
+          `Content file might not be uploaded or CID is incorrect.`
         );
       }
 
@@ -123,7 +123,7 @@ const CourseViewer: React.FC = () => {
 
       // Validate content structure
       if (!content.sections || !Array.isArray(content.sections)) {
-        throw new Error("Format nội dung không hợp lệ. Thiếu sections array.");
+        throw new Error("Invalid content format. Missing sections array.");
       }
 
       setCourseContent(content);
@@ -132,11 +132,11 @@ const CourseViewer: React.FC = () => {
       const errorMessage =
         err instanceof Error
           ? err.message
-          : "Không thể tải nội dung khóa học. Vui lòng thử lại sau.";
+          : "Cannot load course content. Please try again later.";
 
       setError(errorMessage);
       addToast({
-        title: "Lỗi",
+        title: "Error",
         description: errorMessage,
         color: "danger",
         timeout: 5000,
@@ -156,14 +156,14 @@ const CourseViewer: React.FC = () => {
     });
 
     if (!isConnected) {
-      setError("Vui lòng kết nối ví để xem khóa học");
+      setError("Please connect your wallet to view this course");
       setLoading(false);
       return;
     }
 
     if (hasPurchased === false) {
       setError(
-        "Bạn chưa mua khóa học này. Vui lòng mua khóa học trước khi xem nội dung."
+        "You have not purchased this course. Please purchase it to view content."
       );
       setLoading(false);
       return;
@@ -195,7 +195,7 @@ const CourseViewer: React.FC = () => {
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
           <p className="text-lg font-medium text-gray-600">
-            Đang tải nội dung khóa học...
+            Loading course content...
           </p>
         </div>
       </div>
@@ -223,7 +223,7 @@ const CourseViewer: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <BackButton onBack={() => window.history.back()} />
           <div className="bg-white rounded-lg p-6 mt-6">
-            <p className="text-gray-600">Không có nội dung khóa học</p>
+            <p className="text-gray-600">No course content available</p>
           </div>
         </div>
       </div>
@@ -238,7 +238,7 @@ const CourseViewer: React.FC = () => {
 
         <div className="bg-white rounded-xl shadow-lg p-6 md:p-8 mt-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">
-            Nội dung khóa học
+            Course Content
           </h1>
 
           <div className="space-y-8">
@@ -248,7 +248,7 @@ const CourseViewer: React.FC = () => {
                 className="border-b border-gray-200 pb-6 last:border-b-0"
               >
                 <h2 className="text-2xl font-semibold text-gray-900 mb-4">
-                  Phần {sectionIndex + 1}: {section.title}
+                  Section {sectionIndex + 1}: {section.title}
                 </h2>
 
                 <div className="space-y-6 ml-4">
@@ -258,7 +258,7 @@ const CourseViewer: React.FC = () => {
                       className="border-l-4 border-blue-500 pl-4"
                     >
                       <h3 className="text-xl font-medium text-gray-800 mb-3">
-                        Bài {lessonIndex + 1}: {lesson.title}
+                        Lesson {lessonIndex + 1}: {lesson.title}
                       </h3>
 
                       {lesson.type === "video" && lesson.videoUrl ? (
@@ -272,7 +272,7 @@ const CourseViewer: React.FC = () => {
                                 : `${IPFS_GATEWAY}${lesson.videoUrl}`
                             }
                           >
-                            Trình duyệt của bạn không hỗ trợ video.
+                            Your browser does not support video.
                           </video>
                         </div>
                       ) : null}
@@ -305,7 +305,7 @@ const CourseViewer: React.FC = () => {
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:underline"
                 >
-                  Mở trên IPFS Gateway
+                  Open on IPFS Gateway
                 </a>
                 <span className="text-xs text-gray-400">|</span>
                 <a
@@ -314,7 +314,7 @@ const CourseViewer: React.FC = () => {
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:underline"
                 >
-                  Thử Pinata Gateway
+                  Try Pinata Gateway
                 </a>
               </div>
             </div>

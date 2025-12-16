@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button } from '@heroui/button';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useAccount, useConnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { Wallet, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ConnectWalletButtonProps {
     className?: string;
@@ -11,14 +12,15 @@ interface ConnectWalletButtonProps {
 const ConnectWalletButton: React.FC<ConnectWalletButtonProps> = ({ className }) => {
     const { address, isConnected } = useAccount();
     const { connect, isPending: isConnecting } = useConnect();
-    const { disconnect } = useDisconnect();
+
+    const { signOut } = useAuth();
 
     const handleConnect = () => {
         connect({ connector: injected() });
     };
 
     const handleDisconnect = () => {
-        disconnect();
+        signOut();
     };
 
     // Truncate address for display: 0x1234...5678

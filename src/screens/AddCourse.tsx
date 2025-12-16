@@ -154,7 +154,7 @@ const AddCourse: React.FC = () => {
       // Deploy to smart contract with the content CID
       addToast({
         title: "Deploying to Blockchain",
-        description: "Đang deploy khóa học lên blockchain...",
+        description: "Deploying course to blockchain...",
         color: "default",
         timeout: 30000,
         shouldShowTimeoutProgress: true,
@@ -182,8 +182,8 @@ const AddCourse: React.FC = () => {
   const handleDeploy = async () => {
     // Trigger validation for all fields
     await handleSubmit(
-      () => {}, // Empty success callback
-      () => {} // Empty error callback
+      () => { }, // Empty success callback
+      () => { } // Empty error callback
     )();
 
     // Get all current form values and errors
