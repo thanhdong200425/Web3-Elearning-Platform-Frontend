@@ -29,7 +29,7 @@ const HotReleaseCard: React.FC<{ course: Course }> = ({ course }) => {
   const firstLetter = instructorName.charAt(0).toUpperCase();
 
   const handleClick = () => {
-    navigate(`/course/${course.id}`);
+    navigate(`/course/${course.id.toString()}`);
   };
 
   return (

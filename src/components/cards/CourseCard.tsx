@@ -38,7 +38,7 @@ const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
         : "Professional Certificate";
 
   const handleClick = () => {
-    navigate(`/course/${course.id}`);
+    navigate(`/course/${course.id.toString()}`);
   };
 
   return (
