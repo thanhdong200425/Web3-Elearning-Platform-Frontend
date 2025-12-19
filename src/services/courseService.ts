@@ -31,7 +31,9 @@ export const createCourse = async (
 
     // Validate cover image is uploaded
     if (!course.coverImage) {
-      throw new Error("Cover image is required. Please upload a cover image before deploying.");
+      throw new Error(
+        "Cover image is required. Please upload a cover image before deploying."
+      );
     }
 
     // Step 1: Upload cover image to IPFS (required before deployment)
@@ -46,7 +48,7 @@ export const createCourse = async (
     );
 
     // Step 3: Upload metadata (optional, for better organization)
-    let metadataCid: string | undefined;
+    let metadataCid = "";
     try {
       onProgress?.("Uploading course metadata to IPFS...");
       const metadata = {
@@ -55,6 +57,7 @@ export const createCourse = async (
         shortDescription: course.shortDescription,
         imageCid: imageCid,
         category: course.category,
+        contentCid: contentCid,
         rating: 0,
       };
       metadataCid = await uploadCourseMetadata(metadata);

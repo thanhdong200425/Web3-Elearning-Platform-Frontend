@@ -1,7 +1,7 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { formatEther } from 'viem';
-import { Star } from 'lucide-react';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { formatEther } from "viem";
+import { Star } from "lucide-react";
 
 interface Course {
   id: bigint;
@@ -17,29 +17,32 @@ interface Course {
   };
 }
 
-const IPFS_GATEWAY = 'https://ipfs.io/ipfs/';
+const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 
 const CourseCard: React.FC<{ course: Course }> = ({ course }) => {
+  console.log(course);
   const navigate = useNavigate();
   const imageUrl = course.metadata?.imageCid
     ? `${IPFS_GATEWAY}${course.metadata.imageCid}`
-    : 'https://via.placeholder.com/80x80';
+    : "https://via.placeholder.com/80x80";
 
   const rating = course.metadata?.rating || 4.5;
   const priceInEth = formatEther(course.price);
 
-  const category = course.metadata?.category || 'General';
-  const categoryLabel = 
-    category === 'data-science' ? 'Specialization' : 
-    category === 'blockchain' ? 'Professional Certificate' : 
-    'Professional Certificate';
+  const category = course.metadata?.category || "General";
+  const categoryLabel =
+    category === "data-science"
+      ? "Specialization"
+      : category === "blockchain"
+        ? "Professional Certificate"
+        : "Professional Certificate";
 
   const handleClick = () => {
     navigate(`/course/${course.id}`);
   };
 
   return (
-    <div 
+    <div
       onClick={handleClick}
       className="bg-white border border-gray-200 rounded-[10px] flex gap-3 p-[13px] cursor-pointer hover:shadow-md transition-all duration-300"
     >

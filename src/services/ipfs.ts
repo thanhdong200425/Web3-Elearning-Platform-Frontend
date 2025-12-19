@@ -5,6 +5,7 @@ const PINATA_API_URL = "https://api.pinata.cloud";
 const getPinataCredentials = () => {
   const apiKey = import.meta.env.VITE_PINATA_API_KEY || "";
   const apiSecret = import.meta.env.VITE_PINATA_API_SECRET || "";
+  const ipfsGateway = import.meta.env.VITE_GATEWAY_URL || "";
 
   if (!apiKey || !apiSecret) {
     throw new Error(
@@ -12,7 +13,7 @@ const getPinataCredentials = () => {
     );
   }
 
-  return { apiKey, apiSecret };
+  return { apiKey, apiSecret, ipfsGateway };
 };
 
 // Types matching CourseFormData
@@ -52,8 +53,6 @@ function convertToIPFSFormat(sections: CourseSection[]): IPFSCourseContent {
         title: lesson.title,
         content: lesson.content || "",
         type: lesson.file ? "video" : "text",
-        // Note: Video files will need to be uploaded separately
-        // For now, we'll handle text content only
       })),
     })),
   };
@@ -274,3 +273,23 @@ export async function testPinataConnection(): Promise<boolean> {
     return false;
   }
 }
+
+export const getContentFromIPFS = async (cid: string) => {
+  try {
+    const { ipfsGateway } = getPinataCredentials();
+    const response = await fetch(`https://${ipfsGateway}/ipfs/${cid}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Cannot get content from IPFS: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("❌ Error getting content from IPFS:", error);
+    throw new Error(
+      `Cannot get content from IPFS: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+};
