@@ -1,354 +1,413 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import {
-  usePublicClient,
-  useAccount,
-  useReadContract,
-  useWriteContract,
-} from "wagmi";
-import { formatEther, parseEther } from "viem";
-import {
-  elearningPlatformABI,
-  elearningPlatformAddress,
-} from "@/contracts/ElearningPlatform";
-import { addToast } from "@heroui/toast";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@heroui/button";
+import { Card } from "@heroui/card";
+import {
+  Star,
+  Users,
+  Clock,
+  Globe,
+  Database,
+  PlayCircle,
+  FileText,
+  Award,
+  Smartphone,
+  CheckCircle2,
+  Copy,
+  Infinity,
+} from "lucide-react";
 import Header from "@/components/layout/Header";
-import BackButton from "@/components/buttons/BackButton";
 
-const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
+// Mock data for the course
+const mockCourse = {
+  id: 1,
+  title: "Complete Web3 Development Bootcamp",
+  description:
+    "Master blockchain development from scratch with hands-on projects",
+  category: "Blockchain",
+  rating: 4.8,
+  ratingsCount: 2341,
+  studentsCount: 12847,
+  price: "2.5",
+  duration: "42 hours",
+  language: "English",
+  lastUpdated: "December 2024",
+  imageCid: "QmX7M9CiYXjVw9T2b3tFVc8K4nL9mP6qR5sN8wE3dA1fB2g",
+  contractAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+  about: `This comprehensive bootcamp takes you from blockchain basics to building full-stack decentralized applications. You'll learn Solidity, smart contract development, Web3.js, React integration, and deploy real projects on Ethereum testnets. Perfect for developers looking to transition into Web3 development with practical, industry-relevant skills.`,
+  learnings: [
+    "Build and deploy smart contracts on Ethereum",
+    "Develop full-stack decentralized applications",
+    "Integrate Web3 wallets like MetaMask",
+    "Write secure and optimized Solidity code",
+    "Understand blockchain architecture and consensus",
+    "Test and debug smart contracts effectively",
+  ],
+  requirements: [
+    "Basic understanding of JavaScript",
+    "Familiarity with React (helpful but not required)",
+    "A computer with internet connection",
+    "MetaMask wallet installed",
+  ],
+  courseIncludes: {
+    videoHours: "42 hours on-demand video",
+    lessons: "17 lessons",
+    certificate: "Certificate of completion",
+    access: "Access on mobile and desktop",
+  },
+  thumbnailUrl:
+    "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&h=600&fit=crop",
+};
 
-interface Course {
-  id: bigint;
-  instructor: string;
-  price: bigint;
-  title: string;
-  contentCid: string;
-  metadata?: {
-    description: string;
-    shortDescription: string;
-    imageCid: string;
-    category: string;
-    rating: number;
-  };
-}
+type TabType = "overview" | "curriculum" | "instructor";
 
 const CourseDetail: React.FC = () => {
-  const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
-  const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
-  const {
-    writeContract,
-    isPending,
-    isSuccess,
-    error: writeError,
-  } = useWriteContract();
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
 
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [hasPurchased, setHasPurchased] = useState(false);
-  const [checkingPurchase, setCheckingPurchase] = useState(true);
-
-  // Read course data
-  const { data: courseData } = useReadContract({
-    address: elearningPlatformAddress,
-    abi: elearningPlatformABI,
-    functionName: "courses",
-    args: [BigInt(courseId || "0")],
-    query: {
-      enabled: !!courseId,
-    },
-  }) as { data?: [bigint, string, bigint, string, string] };
-
-  // Check if user has purchased
-  const { data: purchased } = useReadContract({
-    address: elearningPlatformAddress,
-    abi: elearningPlatformABI,
-    functionName: "hasPurchasedCourse",
-    args: [address || "0x0", BigInt(courseId || "0")],
-    query: {
-      enabled: !!courseId && !!address && isConnected,
-    },
-  }) as { data?: boolean };
-
-  useEffect(() => {
-    if (courseData) {
-      const [id, instructor, price, title, contentCid] = courseData;
-
-      // Fetch content from IPFS (which may include imageCid)
-      const fetchCourseData = async () => {
-        try {
-          // Fetch content.json from IPFS
-          const contentUrl = `${IPFS_GATEWAY}${contentCid}`;
-          const contentRes = await fetch(contentUrl);
-
-          let metadata = undefined;
-          let imageCid: string | undefined;
-
-          if (contentRes.ok) {
-            const contentData = await contentRes.json();
-
-            // Extract imageCid from content.json if available
-            if (contentData.imageCid) {
-              imageCid = contentData.imageCid;
-            }
-
-            // Try to fetch metadata separately (for backward compatibility)
-            try {
-              // Note: metadataCid is not stored in contract, so we skip this for now
-              // If needed, we can fetch from Pinata API using the contentCid
-            } catch (metaErr) {
-              // Metadata fetch is optional
-            }
-
-            // Create metadata object with imageCid
-            if (imageCid) {
-              metadata = {
-                imageCid,
-                description: contentData.description,
-                shortDescription: contentData.shortDescription,
-                category: contentData.category,
-                rating: contentData.rating || 0,
-              };
-            }
-          }
-
-          setCourse({
-            id,
-            instructor,
-            price,
-            title,
-            contentCid,
-            metadata,
-          });
-        } catch (err) {
-          console.error("Error fetching course data:", err);
-          setCourse({
-            id,
-            instructor,
-            price,
-            title,
-            contentCid,
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchCourseData();
-    }
-  }, [courseData]);
-
-  useEffect(() => {
-    if (purchased !== undefined) {
-      setHasPurchased(purchased);
-      setCheckingPurchase(false);
-    }
-  }, [purchased]);
-
-  useEffect(() => {
-    if (writeError) {
-      addToast({
-        title: "Lỗi",
-        description:
-          writeError.message || "Không thể mua khóa học. Vui lòng thử lại.",
-        color: "danger",
-        timeout: 5000,
-      });
-    }
-  }, [writeError]);
-
-  useEffect(() => {
-    if (isSuccess) {
-      addToast({
-        title: "Thành công",
-        description: "Bạn đã mua khóa học thành công!",
-        color: "success",
-        timeout: 5000,
-      });
-      setHasPurchased(true);
-      // Navigate to course viewer after purchase
-      setTimeout(() => {
-        navigate(`/course/${courseId}/view`);
-      }, 2000);
-    }
-  }, [isSuccess, courseId, navigate]);
-
-  const handlePurchase = async () => {
-    if (!isConnected) {
-      addToast({
-        title: "Chưa kết nối ví",
-        description: "Vui lòng kết nối ví để mua khóa học.",
-        color: "danger",
-        timeout: 3000,
-      });
-      return;
-    }
-
-    if (!course) {
-      return;
-    }
-
-    try {
-      writeContract({
-        address: elearningPlatformAddress,
-        abi: elearningPlatformABI,
-        functionName: "purchaseCourse",
-        args: [course.id],
-        value: course.price,
-      });
-    } catch (error) {
-      console.error("Purchase error:", error);
-    }
+  const handleBack = () => {
+    navigate("/");
   };
 
-  const handleViewCourse = () => {
-    navigate(`/course/${courseId}/view`);
+  const handleEnroll = () => {
+    // Navigate to the learning page
+    navigate(`/course/${mockCourse.id}/learn`);
   };
 
-  if (loading || checkingPurchase) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-lg font-medium text-gray-600">Đang tải...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!course) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <p className="text-xl text-gray-600">Không tìm thấy khóa học</p>
-          <BackButton onBack={() => navigate("/")} />
-        </div>
-      </div>
-    );
-  }
-
-  const imageUrl = course.metadata?.imageCid
-    ? `${IPFS_GATEWAY}${course.metadata.imageCid}`
-    : "https://via.placeholder.com/800x400";
-  const priceInEth = formatEther(course.price);
+  const handleCopyAddress = () => {
+    navigator.clipboard.writeText(mockCourse.contractAddress);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <BackButton onBack={() => navigate("/")} />
-        </div>
 
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {/* Course Image */}
-          <div className="w-full h-64 md:h-96 bg-gray-200">
-            <img
-              src={imageUrl}
-              alt={course.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
+      {/* Dark Header Section */}
+      <div className="bg-[#101828] relative">
+        <div className="max-w-[1280px] mx-auto px-8 py-8">
+          {/* Back Button */}
+          <button
+            onClick={handleBack}
+            className="text-[#d1d5dc] text-sm mb-6 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
+          >
+            ← Back to Courses
+          </button>
 
-          <div className="p-6 md:p-8">
-            {/* Course Title and Info */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                {course.title}
-              </h1>
-
-              <div className="flex flex-wrap items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Giảng viên:</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {course.instructor.substring(0, 6)}...
-                    {course.instructor.substring(course.instructor.length - 4)}
-                  </span>
-                </div>
-                {course.metadata?.category && (
-                  <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
-                    {course.metadata.category}
-                  </span>
-                )}
-                {course.metadata?.rating && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-500">★</span>
-                    <span className="text-sm font-medium">
-                      {course.metadata.rating.toFixed(1)}
-                    </span>
-                  </div>
-                )}
+          <div className="flex gap-8">
+            {/* Left Content */}
+            <div className="flex-1 max-w-[800px]">
+              {/* Badge */}
+              <div className="inline-block bg-[#155dfc] text-white text-xs px-2 py-1 rounded-lg mb-4">
+                {mockCourse.category}
               </div>
 
-              {/* Price */}
-              <div className="text-3xl font-bold text-blue-600 mb-6">
-                {priceInEth} ETH
+              {/* Title */}
+              <h1 className="text-white text-base font-normal mb-2">
+                {mockCourse.title}
+              </h1>
+
+              {/* Subtitle */}
+              <p className="text-[#d1d5dc] text-base mb-4">
+                {mockCourse.description}
+              </p>
+
+              {/* Rating and Students */}
+              <div className="flex items-center gap-6 mb-4">
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4 text-white fill-white" />
+                  <span className="text-white font-bold text-sm">
+                    {mockCourse.rating}
+                  </span>
+                  <span className="text-[#99a1af] text-sm">
+                    ({mockCourse.ratingsCount} ratings)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-white" />
+                  <span className="text-white text-sm">
+                    {mockCourse.studentsCount.toLocaleString()} students
+                  </span>
+                </div>
+              </div>
+
+              {/* Meta Info */}
+              <div className="flex items-center gap-6 mb-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-[#99a1af]" />
+                  <span className="text-[#99a1af] text-sm">
+                    {mockCourse.duration}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#99a1af]" />
+                  <span className="text-[#99a1af] text-sm">
+                    {mockCourse.language}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-[#99a1af]" />
+                  <span className="text-[#99a1af] text-sm">Stored on IPFS</span>
+                </div>
+              </div>
+
+              {/* Last Updated */}
+              <p className="text-[#99a1af] text-xs">
+                Last updated: {mockCourse.lastUpdated}
+              </p>
+            </div>
+
+            {/* Right Side - Video Preview Card (Positioned absolutely to overlap) */}
+          </div>
+        </div>
+      </div>
+
+      {/* Enrollment Card - Floating */}
+      <div className="max-w-[1280px] mx-auto px-8 relative">
+        <div className="absolute right-8 -top-[320px] w-[384px]">
+          <Card className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-lg">
+            {/* Video Preview */}
+            <div className="relative bg-gray-200 h-48 flex items-center justify-center overflow-hidden">
+              <img
+                src={mockCourse.thumbnailUrl}
+                alt={mockCourse.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <div className="bg-white/90 rounded-full p-4 cursor-pointer hover:bg-white transition-colors">
+                  <PlayCircle className="w-8 h-8 text-gray-800" />
+                </div>
               </div>
             </div>
 
-            {/* Description */}
-            {course.metadata?.description && (
+            <div className="p-5">
+              {/* Price */}
               <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-3">Mô tả khóa học</h2>
-                <p className="text-gray-700 leading-relaxed">
-                  {course.metadata.description}
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-[#101828] text-3xl font-bold">
+                    {mockCourse.price}
+                  </span>
+                  <span className="text-[#4a5565] text-xl">ETH</span>
+                </div>
+                <p className="text-[#6a7282] text-xs">One-time payment</p>
+              </div>
+
+              {/* Enroll Button */}
+              <Button
+                onPress={handleEnroll}
+                className="w-full bg-[#030213] text-white rounded-lg h-10 text-sm font-normal mb-8"
+              >
+                Enroll Now
+              </Button>
+
+              {/* Features */}
+              <div className="space-y-2 mb-8">
+                <div className="flex items-center gap-2">
+                  <Infinity className="w-4 h-4 text-[#101828]" />
+                  <span className="text-[#101828] text-sm">
+                    Lifetime access
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Award className="w-4 h-4 text-[#101828]" />
+                  <span className="text-[#101828] text-sm">
+                    Certificate of completion
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-[#101828]" />
+                  <span className="text-[#101828] text-sm">
+                    Blockchain verified
+                  </span>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-gray-200 mb-6"></div>
+
+              {/* Smart Contract */}
+              <div>
+                <p className="text-[#4a5565] text-xs mb-1">Smart Contract</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[#6a7282] text-xs font-mono flex-1 truncate">
+                    {mockCourse.contractAddress}
+                  </p>
+                  <button
+                    onClick={handleCopyAddress}
+                    className="text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="max-w-[1280px] mx-auto px-8 pt-8 pb-16">
+        <div className="flex gap-8">
+          {/* Left Content - Tabs */}
+          <div className="flex-1 max-w-[800px]">
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200 mb-8">
+              <div className="flex">
+                <button
+                  onClick={() => setActiveTab("overview")}
+                  className={`flex-1 py-2 text-sm text-center border-b-2 transition-colors ${
+                    activeTab === "overview"
+                      ? "border-[#101828] text-[#0a0a0a]"
+                      : "border-transparent text-[#0a0a0a] hover:border-gray-300"
+                  }`}
+                >
+                  Overview
+                </button>
+                <button
+                  onClick={() => setActiveTab("curriculum")}
+                  className={`flex-1 py-2 text-sm text-center border-b-2 transition-colors ${
+                    activeTab === "curriculum"
+                      ? "border-[#101828] text-[#0a0a0a]"
+                      : "border-transparent text-[#0a0a0a] hover:border-gray-300"
+                  }`}
+                >
+                  Curriculum
+                </button>
+                <button
+                  onClick={() => setActiveTab("instructor")}
+                  className={`flex-1 py-2 text-sm text-center border-b-2 transition-colors ${
+                    activeTab === "instructor"
+                      ? "border-[#101828] text-[#0a0a0a]"
+                      : "border-transparent text-[#0a0a0a] hover:border-gray-300"
+                  }`}
+                >
+                  Instructor
+                </button>
+              </div>
+            </div>
+
+            {/* Tab Content - Overview */}
+            {activeTab === "overview" && (
+              <div className="space-y-8">
+                {/* About this course */}
+                <div>
+                  <h2 className="text-[#0a0a0a] text-xl mb-4">
+                    About this course
+                  </h2>
+                  <p className="text-[#4a5565] text-base leading-relaxed">
+                    {mockCourse.about}
+                  </p>
+                </div>
+
+                {/* What you'll learn */}
+                <div>
+                  <h2 className="text-[#0a0a0a] text-base mb-4">
+                    What you'll learn
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {mockCourse.learnings.map((item, index) => (
+                      <div key={index} className="flex gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
+                        <p className="text-[#364153] text-base">{item}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Requirements */}
+                <div>
+                  <h2 className="text-[#0a0a0a] text-base mb-4">
+                    Requirements
+                  </h2>
+                  <ul className="space-y-2">
+                    {mockCourse.requirements.map((item, index) => (
+                      <li
+                        key={index}
+                        className="flex gap-3 text-[#4a5565] text-base"
+                      >
+                        <span className="text-[#99a1af]">•</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* Tab Content - Curriculum */}
+            {activeTab === "curriculum" && (
+              <div>
+                <h2 className="text-[#0a0a0a] text-xl mb-4">
+                  Course Curriculum
+                </h2>
+                <p className="text-[#4a5565] text-base">
+                  Curriculum content will be displayed here...
                 </p>
               </div>
             )}
 
-            {course.metadata?.shortDescription &&
-              !course.metadata?.description && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold mb-3">Mô tả khóa học</h2>
-                  <p className="text-gray-700 leading-relaxed">
-                    {course.metadata.shortDescription}
+            {/* Tab Content - Instructor */}
+            {activeTab === "instructor" && (
+              <div>
+                <h2 className="text-[#0a0a0a] text-xl mb-4">
+                  About the Instructor
+                </h2>
+                <p className="text-[#4a5565] text-base">
+                  Instructor information will be displayed here...
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Sidebar - Course Includes & IPFS Info */}
+          <div className="w-[384px] space-y-6 mt-[360px]">
+            {/* Course Includes Card */}
+            <Card className="bg-white border border-gray-200 rounded-2xl p-6">
+              <h3 className="text-[#0a0a0a] text-base mb-5">Course includes</h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <PlayCircle className="w-5 h-5 text-gray-700" />
+                  <span className="text-[#0a0a0a] text-sm">
+                    {mockCourse.courseIncludes.videoHours}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <FileText className="w-5 h-5 text-gray-700" />
+                  <span className="text-[#0a0a0a] text-sm">
+                    {mockCourse.courseIncludes.lessons}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Award className="w-5 h-5 text-gray-700" />
+                  <span className="text-[#0a0a0a] text-sm">
+                    {mockCourse.courseIncludes.certificate}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-5 h-5 text-gray-700" />
+                  <span className="text-[#0a0a0a] text-sm">
+                    {mockCourse.courseIncludes.access}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* IPFS Storage Card */}
+            <Card className="bg-[#f9fafb] border border-gray-200 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-[#155dfc] rounded-lg w-10 h-10 flex items-center justify-center">
+                  <Database className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-[#4a5565] text-sm">Stored on</p>
+                  <p className="text-[#0a0a0a] text-base font-normal">
+                    IPFS Network
                   </p>
                 </div>
-              )}
-
-            {/* Purchase Button */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              {hasPurchased ? (
-                <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <p className="text-green-800 font-medium">
-                      ✓ Bạn đã mua khóa học này
-                    </p>
-                  </div>
-                  <Button
-                    size="lg"
-                    className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                    onPress={handleViewCourse}
-                  >
-                    Xem khóa học
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {!isConnected && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                      <p className="text-yellow-800">
-                        Vui lòng kết nối ví để mua khóa học
-                      </p>
-                    </div>
-                  )}
-                  <Button
-                    size="lg"
-                    className="w-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                    onPress={handlePurchase}
-                    disabled={!isConnected || isPending}
-                  >
-                    {isPending
-                      ? "Đang xử lý..."
-                      : `Mua khóa học - ${priceInEth} ETH`}
-                  </Button>
-                </div>
-              )}
-            </div>
+              </div>
+              <p className="text-[#6a7282] text-xs font-mono break-all">
+                {mockCourse.imageCid}
+              </p>
+            </Card>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { HeroUIProvider } from "@heroui/system";
 import { ToastProvider } from "@heroui/toast";
 import { Routes, Route } from "react-router-dom";
 import CourseDetail from "./screens/CourseDetail";
+import CourseLearn from "./screens/CourseLearn";
 import MyCourses from "./screens/MyCourses";
 import CourseViewer from "./components/course/CourseViewer";
 import Home from "./screens/Home";
@@ -22,6 +23,7 @@ function App() {
       <SignInModal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)} />
       <Routes>
         <Route path="/course/:courseId" element={<CourseDetail />} />
+        <Route path="/course/:courseId/learn" element={<CourseLearn />} />
         <Route path="/course/:courseId/view" element={<CourseViewer />} />
         <Route path="/my-courses" element={<MyCourses />} />
         <Route element={<Home />} path="/" />
