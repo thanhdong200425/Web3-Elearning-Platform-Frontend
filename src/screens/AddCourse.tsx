@@ -141,7 +141,7 @@ const AddCourse: React.FC = () => {
 
     try {
       // Upload course content to IPFS using the service
-      const { contentCid } = await createCourse(data, (message) => {
+      const { metadataCid } = await createCourse(data, (message) => {
         addToast({
           title: "Uploading to IPFS",
           description: message,
@@ -164,7 +164,11 @@ const AddCourse: React.FC = () => {
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
         functionName: "createCourse",
-        args: [data.title, parseEther(data.coursePrice.toString()), contentCid],
+        args: [
+          data.title,
+          parseEther(data.coursePrice.toString()),
+          metadataCid as string,
+        ],
       });
 
       console.log("Error message:", writeError);
@@ -182,8 +186,8 @@ const AddCourse: React.FC = () => {
   const handleDeploy = async () => {
     // Trigger validation for all fields
     await handleSubmit(
-      () => { }, // Empty success callback
-      () => { } // Empty error callback
+      () => {}, // Empty success callback
+      () => {} // Empty error callback
     )();
 
     // Get all current form values and errors
