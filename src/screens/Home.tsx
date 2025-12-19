@@ -31,8 +31,6 @@ interface Course extends OnChainCourse {
   };
 }
 
-const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
-
 const Home: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +94,6 @@ const Home: React.FC = () => {
             let metadata = undefined;
 
             try {
-              // BUG: wrong url
               const res = await getContentFromIPFS(course.contentCid);
               metadata = res;
             } catch (err) {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Card } from "@heroui/card";
@@ -11,170 +11,15 @@ import {
   HelpCircle,
   CheckCircle,
   Play,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
+import { useCourseData } from "@/hooks/useCourseData";
+import { CourseLesson, calculateCourseStats } from "@/types/courseTypes";
 
-// Mock data for the course
-const mockCourseData = {
-  id: 1,
-  title: "Complete Web3 Development Bootcamp",
-  totalLessons: 17,
-  sections: [
-    {
-      id: 1,
-      title: "Introduction to Blockchain",
-      expanded: true,
-      lessons: [
-        {
-          id: 1,
-          type: "video",
-          title: "What is Blockchain?",
-          duration: "12:30",
-          completed: false,
-        },
-        {
-          id: 2,
-          type: "video",
-          title: "How Blockchain Works",
-          duration: "18:45",
-          completed: false,
-        },
-        {
-          id: 3,
-          type: "text",
-          title: "Types of Blockchains",
-          duration: "15:20",
-          completed: false,
-        },
-        {
-          id: 4,
-          type: "quiz",
-          title: "Section Quiz",
-          duration: "10 questions",
-          completed: false,
-        },
-      ],
-    },
-    {
-      id: 2,
-      title: "Ethereum Fundamentals",
-      expanded: false,
-      lessons: [
-        {
-          id: 5,
-          type: "video",
-          title: "Introduction to Ethereum",
-          duration: "20:15",
-          completed: false,
-        },
-        {
-          id: 6,
-          type: "video",
-          title: "Ethereum Virtual Machine",
-          duration: "25:30",
-          completed: false,
-        },
-        {
-          id: 7,
-          type: "text",
-          title: "Gas and Transaction Fees",
-          duration: "16:40",
-          completed: false,
-        },
-        {
-          id: 8,
-          type: "quiz",
-          title: "Section Quiz",
-          duration: "15 questions",
-          completed: false,
-        },
-      ],
-    },
-    {
-      id: 3,
-      title: "Solidity Programming",
-      expanded: false,
-      lessons: [
-        {
-          id: 9,
-          type: "video",
-          title: "Solidity Basics",
-          duration: "28:20",
-          completed: false,
-        },
-        {
-          id: 10,
-          type: "video",
-          title: "Data Types and Variables",
-          duration: "22:15",
-          completed: false,
-        },
-        {
-          id: 11,
-          type: "video",
-          title: "Functions and Modifiers",
-          duration: "30:45",
-          completed: false,
-        },
-        {
-          id: 12,
-          type: "text",
-          title: "Smart Contract Patterns",
-          duration: "35:20",
-          completed: false,
-        },
-        {
-          id: 13,
-          type: "quiz",
-          title: "Section Quiz",
-          duration: "20 questions",
-          completed: false,
-        },
-      ],
-    },
-    {
-      id: 4,
-      title: "Building DApps",
-      expanded: false,
-      lessons: [
-        {
-          id: 14,
-          type: "video",
-          title: "Web3.js Integration",
-          duration: "32:10",
-          completed: false,
-        },
-        {
-          id: 15,
-          type: "video",
-          title: "React and Web3",
-          duration: "40:25",
-          completed: false,
-        },
-        {
-          id: 16,
-          type: "video",
-          title: "Wallet Integration",
-          duration: "28:50",
-          completed: false,
-        },
-        {
-          id: 17,
-          type: "text",
-          title: "Final Project",
-          duration: "2 hours",
-          completed: false,
-        },
-      ],
-    },
-  ],
-};
-
-interface Lesson {
-  id: number;
-  type: string;
-  title: string;
-  duration: string;
-  completed: boolean;
+interface ExtendedLesson extends CourseLesson {
+  sectionIndex: number;
+  lessonIndex: number;
 }
 
 const CourseLearn: React.FC = () => {
