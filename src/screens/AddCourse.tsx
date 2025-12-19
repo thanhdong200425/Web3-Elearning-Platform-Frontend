@@ -317,7 +317,13 @@ const AddCourse: React.FC = () => {
                         isRequired
                         label="Category"
                         placeholder="Select category"
-                        {...register("category")}
+                        selectedKeys={watch("category") ? [watch("category")] : []}
+                        onSelectionChange={(keys) => {
+                          const selected = Array.from(keys)[0];
+                          setValue("category", selected as string, {
+                            shouldValidate: true,
+                          });
+                        }}
                         classNames={{
                           trigger: "bg-gray-100 border-0 rounded-lg px-3 py-2",
                           label: defaultLabelClassNames,

@@ -17,8 +17,10 @@ interface CourseContent {
     lessons: Array<{
       title: string;
       content: string;
-      videoUrl?: string;
-      type: "text" | "video";
+      videoUrl?: string;  // Keep for backward compatibility
+      type: "text" | "video" | "document";
+      fileCid?: string;   // NEW: CID of uploaded lesson file
+      fileUrl?: string;   // NEW: IPFS URL (same as fileCid for now)
     }>;
   }>;
 }
@@ -261,19 +263,94 @@ const CourseViewer: React.FC = () => {
                         Lesson {lessonIndex + 1}: {lesson.title}
                       </h3>
 
-                      {lesson.type === "video" && lesson.videoUrl ? (
+                      {/* Video/File Display */}
+                      {(lesson.type === "video" || lesson.type === "document") &&
+                      (lesson.videoUrl || lesson.fileCid) ? (
                         <div className="mb-4">
-                          <video
-                            controls
-                            className="w-full rounded-lg"
-                            src={
-                              lesson.videoUrl.startsWith("http")
-                                ? lesson.videoUrl
-                                : `${IPFS_GATEWAY}${lesson.videoUrl}`
-                            }
-                          >
-                            Your browser does not support video.
-                          </video>
+                          {lesson.type === "video" ? (
+                            <video
+                              controls
+                              className="w-full rounded-lg"
+                              src={
+                                lesson.videoUrl?.startsWith("http")
+                                  ? lesson.videoUrl
+                                  : lesson.fileCid
+                                  ? `${IPFS_GATEWAY}${lesson.fileCid}`
+                                  : lesson.videoUrl
+                                  ? `${IPFS_GATEWAY}${lesson.videoUrl}`
+                                  : undefined
+                              }
+                            >
+                              Your browser does not support video.
+                            </video>
+                          ) : (
+                            <a
+                              href={
+                                lesson.fileCid
+                                  ? `${IPFS_GATEWAY}${lesson.fileCid}`
+                                  : lesson.videoUrl
+                                  ? `${IPFS_GATEWAY}${lesson.videoUrl}`
+                                  : undefined
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 rounded-xl p-6 hover:shadow-lg hover:border-red-300 transition-all duration-200 group"
+                            >
+                              <div className="flex items-center gap-4">
+                                {/* PDF Icon */}
+                                <div className="flex-shrink-0 w-16 h-16 bg-red-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                                  <svg
+                                    className="w-8 h-8 text-white"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </div>
+
+                                {/* File Info */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 mb-1">
+                                    Lesson Document
+                                  </p>
+                                  <p className="text-xs text-gray-600 mb-2">
+                                    PDF Document - Click to view
+                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 text-red-800 text-xs font-medium">
+                                      PDF
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                      Open in new tab →
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Preview Arrow */}
+                                <div className="flex-shrink-0">
+                                  <svg
+                                    className="w-6 h-6 text-red-500 group-hover:translate-x-1 transition-transform duration-200"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 5l7 7-7 7"
+                                    />
+                                  </svg>
+                                </div>
+                              </div>
+                            </a>
+                          )}
                         </div>
                       ) : null}
 

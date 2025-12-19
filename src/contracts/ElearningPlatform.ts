@@ -1,5 +1,5 @@
 export const elearningPlatformAddress =
-  "0xA8b39ADB26469FbAd08CfB813c34ac1c0c74F09b";
+  "0xa27bC320252d51EEAA24BCCF6cc003979E485860";
 
 export const elearningPlatformABI = [
   {
