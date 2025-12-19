@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   PlayCircle,
   FileText,
-  HelpCircle,
   CheckCircle,
   Play,
   Loader2,
@@ -24,16 +23,48 @@ interface ExtendedLesson extends CourseLesson {
 
 const CourseLearn: React.FC = () => {
   const navigate = useNavigate();
-  const { courseId } = useParams();
-  
-  const [expandedSections, setExpandedSections] = useState<number[]>([1]);
-  const [currentLesson, setCurrentLesson] = useState<Lesson>(
-    mockCourseData.sections[0].lessons[0]
-  );
-  const [completedLessons, setCompletedLessons] = useState<number[]>([]);
+  const { courseId: id } = useParams<{ courseId: string }>();
+
+  // Parse course ID from URL
+  const courseId = id ? BigInt(id) : undefined;
+
+  // Fetch course data using custom hook
+  const {
+    courseData,
+    courseContent,
+    courseMetadata,
+    isLoading,
+    isLoadingContent,
+    isError,
+  } = useCourseData(courseId);
+
+  // Calculate stats
+  const { totalLessons } = calculateCourseStats(courseContent);
+
+  // Flatten lessons for navigation
+  const allLessons = useMemo(() => {
+    if (!courseContent?.sections) return [];
+    const lessons: ExtendedLesson[] = [];
+    courseContent.sections.forEach((section, sectionIndex) => {
+      section.lessons?.forEach((lesson, lessonIndex) => {
+        lessons.push({
+          ...lesson,
+          sectionIndex,
+          lessonIndex,
+        });
+      });
+    });
+    return lessons;
+  }, [courseContent]);
+
+  const [expandedSections, setExpandedSections] = useState<number[]>([0]);
+  const [currentLessonIndex, setCurrentLessonIndex] = useState<number>(0);
+  const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set());
+
+  const currentLesson = allLessons[currentLessonIndex];
 
   const handleExitCourse = () => {
-    navigate(`/course/${courseId}`);
+    navigate(`/course/${id}`);
   };
 
   const toggleSection = (sectionId: number) => {
@@ -44,77 +75,66 @@ const CourseLearn: React.FC = () => {
     );
   };
 
-  const handleLessonClick = (lesson: Lesson) => {
-    setCurrentLesson(lesson);
+  const handleLessonClick = (lessonGlobalIndex: number) => {
+    setCurrentLessonIndex(lessonGlobalIndex);
   };
 
   const handleMarkComplete = () => {
-    if (!completedLessons.includes(currentLesson.id)) {
-      setCompletedLessons([...completedLessons, currentLesson.id]);
-    }
-  };
-
-  const getCurrentLessonNumber = () => {
-    let lessonNumber = 0;
-    for (const section of mockCourseData.sections) {
-      for (const lesson of section.lessons) {
-        lessonNumber++;
-        if (lesson.id === currentLesson.id) {
-          return lessonNumber;
-        }
-      }
-    }
-    return 1;
+    setCompletedLessons((prev) => {
+      const newSet = new Set(prev);
+      newSet.add(currentLessonIndex);
+      return newSet;
+    });
   };
 
   const handleNextLesson = () => {
-    const currentNumber = getCurrentLessonNumber();
-    if (currentNumber < mockCourseData.totalLessons) {
-      let lessonNumber = 0;
-      for (const section of mockCourseData.sections) {
-        for (const lesson of section.lessons) {
-          lessonNumber++;
-          if (lessonNumber === currentNumber + 1) {
-            setCurrentLesson(lesson);
-            return;
-          }
-        }
-      }
+    if (currentLessonIndex < allLessons.length - 1) {
+      setCurrentLessonIndex(currentLessonIndex + 1);
     }
   };
 
   const handlePreviousLesson = () => {
-    const currentNumber = getCurrentLessonNumber();
-    if (currentNumber > 1) {
-      let lessonNumber = 0;
-      for (const section of mockCourseData.sections) {
-        for (const lesson of section.lessons) {
-          lessonNumber++;
-          if (lessonNumber === currentNumber - 1) {
-            setCurrentLesson(lesson);
-            return;
-          }
-        }
-      }
+    if (currentLessonIndex > 0) {
+      setCurrentLessonIndex(currentLessonIndex - 1);
     }
   };
 
-  const getLessonIcon = (type: string) => {
+  const getLessonIcon = (type?: string) => {
     switch (type) {
       case "video":
         return <PlayCircle className="w-3 h-3" />;
       case "text":
         return <FileText className="w-3 h-3" />;
-      case "quiz":
-        return <HelpCircle className="w-3 h-3" />;
       default:
         return <FileText className="w-3 h-3" />;
     }
   };
 
-  const currentLessonNumber = getCurrentLessonNumber();
-  const isFirstLesson = currentLessonNumber === 1;
-  const isLastLesson = currentLessonNumber === mockCourseData.totalLessons;
+  const isFirstLesson = currentLessonIndex === 0;
+  const isLastLesson = currentLessonIndex === allLessons.length - 1;
+
+  // Loading state
+  if (isLoading || isLoadingContent) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-600 text-lg">Loading course from blockchain & IPFS...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError || !courseData || !courseContent || allLessons.length === 0) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <p className="text-gray-600 text-lg mb-4">Course not found or has no content</p>
+        <Button onPress={() => navigate(`/course/${id}`)} className="bg-blue-600 text-white">
+          Back to Course
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -129,11 +149,10 @@ const CourseLearn: React.FC = () => {
           </button>
           <div>
             <h1 className="text-[#0a0a0a] text-base font-normal">
-              {mockCourseData.title}
+              {courseMetadata?.title || courseData.title}
             </h1>
             <p className="text-[#6a7282] text-sm">
-              {completedLessons.length} of {mockCourseData.totalLessons}{" "}
-              lessons completed
+              {completedLessons.size} of {totalLessons} lessons completed
             </p>
           </div>
         </div>
@@ -155,64 +174,72 @@ const CourseLearn: React.FC = () => {
               Course Content
             </h2>
             <p className="text-[#6a7282] text-sm">
-              {mockCourseData.sections.length} sections
+              {courseContent.sections?.length || 0} sections
             </p>
           </div>
 
           {/* Sections List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            {mockCourseData.sections.map((section) => (
-              <Card
-                key={section.id}
-                className="bg-white border border-gray-200 rounded-2xl overflow-hidden p-0"
-              >
-                {/* Section Header */}
-                <button
-                  onClick={() => toggleSection(section.id)}
-                  className="w-full px-4 py-3 flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                >
-                  <ChevronRight
-                    className={`w-4 h-4 text-gray-700 transition-transform ${
-                      expandedSections.includes(section.id) ? "rotate-90" : ""
-                    }`}
-                  />
-                  <span className="text-[#0a0a0a] text-sm flex-1 text-left">
-                    {section.title}
-                  </span>
-                </button>
+            {courseContent.sections?.map((section, sectionIndex) => {
+              let lessonGlobalIndex = 0;
+              // Calculate the starting global index for this section
+              for (let i = 0; i < sectionIndex; i++) {
+                lessonGlobalIndex += courseContent.sections?.[i]?.lessons?.length || 0;
+              }
 
-                {/* Lessons List */}
-                {expandedSections.includes(section.id) && (
-                  <div className="border-t border-gray-200">
-                    {section.lessons.map((lesson) => (
-                      <button
-                        key={lesson.id}
-                        onClick={() => handleLessonClick(lesson)}
-                        className={`w-full px-4 py-3 pl-12 flex flex-col gap-1 hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0 ${
-                          currentLesson.id === lesson.id ? "bg-[#eff6ff]" : ""
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          {getLessonIcon(lesson.type)}
-                          <span
-                            className={`text-sm flex-1 text-left ${
-                              currentLesson.id === lesson.id
-                                ? "text-[#155dfc]"
-                                : "text-[#364153]"
+              return (
+                <Card
+                  key={sectionIndex}
+                  className="bg-white border border-gray-200 rounded-2xl overflow-hidden p-0"
+                >
+                  {/* Section Header */}
+                  <button
+                    onClick={() => toggleSection(sectionIndex)}
+                    className="w-full px-4 py-3 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                  >
+                    <ChevronRight
+                      className={`w-4 h-4 text-gray-700 transition-transform ${
+                        expandedSections.includes(sectionIndex) ? "rotate-90" : ""
+                      }`}
+                    />
+                    <span className="text-[#0a0a0a] text-sm flex-1 text-left">
+                      {section.title}
+                    </span>
+                  </button>
+
+                  {/* Lessons List */}
+                  {expandedSections.includes(sectionIndex) && (
+                    <div className="border-t border-gray-200">
+                      {section.lessons?.map((lesson, lessonIndex) => {
+                        const currentGlobalIndex = lessonGlobalIndex + lessonIndex;
+                        return (
+                          <button
+                            key={lessonIndex}
+                            onClick={() => handleLessonClick(currentGlobalIndex)}
+                            className={`w-full px-4 py-3 pl-12 flex flex-col gap-1 hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0 ${
+                              currentLessonIndex === currentGlobalIndex ? "bg-[#eff6ff]" : ""
                             }`}
                           >
-                            {lesson.title}
-                          </span>
-                        </div>
-                        <span className="text-[#6a7282] text-xs text-left">
-                          {lesson.duration}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            ))}
+                            <div className="flex items-center gap-2">
+                              {getLessonIcon(lesson.type)}
+                              <span
+                                className={`text-sm flex-1 text-left ${
+                                  currentLessonIndex === currentGlobalIndex
+                                    ? "text-[#155dfc]"
+                                    : "text-[#364153]"
+                                }`}
+                              >
+                                {lesson.title}
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
           </div>
         </div>
 
@@ -225,21 +252,18 @@ const CourseLearn: React.FC = () => {
               <div className="mb-8">
                 <div className="inline-block border border-gray-200 px-2 py-1 rounded-lg mb-3">
                   <span className="text-[#0a0a0a] text-xs capitalize">
-                    {currentLesson.type}
+                    {currentLesson?.type || "text"}
                   </span>
                 </div>
                 <h1 className="text-[#0a0a0a] text-base font-normal mb-2">
-                  {currentLesson.title}
+                  {currentLesson?.title}
                 </h1>
-                <p className="text-[#6a7282] text-base">
-                  {currentLesson.duration}
-                </p>
               </div>
 
               <div className="border-t border-gray-200 mb-8"></div>
 
               {/* Lesson Content Based on Type */}
-              {currentLesson.type === "video" && (
+              {currentLesson?.type === "video" && (
                 <div className="bg-[#101828] rounded-lg h-[540px] flex items-center justify-center mb-8">
                   <div className="text-center">
                     <Play className="w-16 h-16 text-white mx-auto mb-4" />
@@ -250,35 +274,10 @@ const CourseLearn: React.FC = () => {
                 </div>
               )}
 
-              {currentLesson.type === "text" && (
+              {currentLesson?.type === "text" && (
                 <Card className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
-                  <p className="text-[#364153] text-base leading-relaxed">
-                    This lesson introduces you to the fundamental concepts of
-                    blockchain technology. You'll learn about distributed
-                    ledgers, consensus mechanisms, and how blockchain networks
-                    operate. We'll explore real-world use cases and understand
-                    why blockchain is revolutionizing various industries.
-                    <br />
-                    <br />
-                    Key topics covered:
-                    <br />• What is blockchain technology?
-                    <br />• How does a blockchain work?
-                    <br />• Types of blockchain networks
-                    <br />• Consensus mechanisms explained
-                    <br />• Real-world applications
-                    <br />
-                    <br />
-                    By the end of this lesson, you'll have a solid foundation to
-                    build upon in the following modules.
-                  </p>
-                </Card>
-              )}
-
-              {currentLesson.type === "quiz" && (
-                <Card className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
-                  <p className="text-[#364153] text-base text-center">
-                    Quiz interface will be displayed here with{" "}
-                    {currentLesson.duration}
+                  <p className="text-[#364153] text-base leading-relaxed whitespace-pre-wrap">
+                    {currentLesson.content || "Lesson content will be displayed here."}
                   </p>
                 </Card>
               )}
@@ -308,7 +307,7 @@ const CourseLearn: React.FC = () => {
                 Previous Lesson
               </Button>
               <p className="text-[#6a7282] text-sm">
-                Lesson {currentLessonNumber} of {mockCourseData.totalLessons}
+                Lesson {currentLessonIndex + 1} of {totalLessons}
               </p>
               <Button
                 onPress={handleNextLesson}
