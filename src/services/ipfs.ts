@@ -36,7 +36,9 @@ interface IPFSCourseContent {
       title: string;
       content: string;
       videoUrl?: string;
-      type: "text" | "video";
+      type: "text" | "video" | "document";
+      fileCid?: string; // NEW: CID of uploaded lesson file
+      fileUrl?: string; // NEW: IPFS URL constructed from CID
     }>;
   }>;
   imageCid?: string; // Add imageCid to content structure
@@ -53,6 +55,8 @@ function convertToIPFSFormat(sections: CourseSection[]): IPFSCourseContent {
         title: lesson.title,
         content: lesson.content || "",
         type: lesson.file ? "video" : "text",
+        // Note: Video files will need to be uploaded separately
+        // For now, we'll handle text content only
       })),
     })),
   };
@@ -133,6 +137,43 @@ export async function uploadFileToIPFS(file: File): Promise<string> {
 }
 
 /**
+ * Detect file type based on file extension and MIME type
+ */
+function detectFileType(file: File): "text" | "video" | "document" {
+  const fileName = file.name.toLowerCase();
+  const mimeType = file.type.toLowerCase();
+
+  // Video formats
+  if (
+    mimeType.startsWith("video/") ||
+    fileName.endsWith(".mp4") ||
+    fileName.endsWith(".webm") ||
+    fileName.endsWith(".mov") ||
+    fileName.endsWith(".avi") ||
+    fileName.endsWith(".mkv")
+  ) {
+    return "video";
+  }
+
+  // Document formats (PDF, Word, etc.)
+  if (
+    mimeType === "application/pdf" ||
+    fileName.endsWith(".pdf") ||
+    fileName.endsWith(".doc") ||
+    fileName.endsWith(".docx") ||
+    fileName.endsWith(".ppt") ||
+    fileName.endsWith(".pptx") ||
+    fileName.endsWith(".xls") ||
+    fileName.endsWith(".xlsx")
+  ) {
+    return "document";
+  }
+
+  // Default to document for any other file
+  return "document";
+}
+
+/**
  * Upload course content (sections and lessons) to IPFS
  * This creates a content.json file with the course structure
  */
@@ -148,22 +189,64 @@ export async function uploadCourseContent(
     console.log("📤 Uploading course content to IPFS...");
     console.log("📋 Sections to upload:", sections.length);
 
-    // 1. Convert format from form to IPFS format
-    const formattedContent = convertToIPFSFormat(sections);
+    // 1. Upload lesson files first and build formatted content
+    const sectionsWithFiles = await Promise.all(
+      sections.map(async (section) => {
+        const lessons = await Promise.all(
+          (section.lessons || []).map(async (lesson) => {
+            let fileCid: string | undefined;
+            let fileType: "text" | "video" | "document" = "text";
 
-    // Add imageCid to content if provided
-    if (imageCid) {
-      formattedContent.imageCid = imageCid;
-    }
+            // Upload file if exists
+            if (lesson.file) {
+              console.log(`📤 Uploading lesson file: ${lesson.file.name}`);
+              try {
+                // Detect file type
+                fileType = detectFileType(lesson.file);
+                console.log(`📝 Detected file type: ${fileType}`);
 
-    // 2. Create content.json file
+                fileCid = await uploadFileToIPFS(lesson.file);
+                console.log(`✅ Lesson file uploaded. CID: ${fileCid}`);
+              } catch (fileError) {
+                console.error(
+                  `❌ Failed to upload lesson file: ${lesson.file.name}`,
+                  fileError
+                );
+                // Continue without file if upload fails
+              }
+            }
+
+            return {
+              title: lesson.title,
+              content: lesson.content || "",
+              type: fileType, // Use detected type
+              fileCid, // NEW: Store the uploaded file CID
+              fileUrl: fileCid ? fileCid : undefined, // NEW: Store CID for direct reference
+            };
+          })
+        );
+
+        return {
+          title: section.title,
+          lessons,
+        };
+      })
+    );
+
+    // 2. Build formatted content with uploaded file CIDs
+    const formattedContent: IPFSCourseContent = {
+      sections: sectionsWithFiles,
+      imageCid,
+    };
+
+    // 3. Create content.json file
     const contentJson = JSON.stringify(formattedContent, null, 2);
     const contentBlob = new Blob([contentJson], { type: "application/json" });
     const contentFile = new File([contentBlob], "content.json", {
       type: "application/json",
     });
 
-    // 3. Upload to Pinata
+    // 4. Upload to Pinata
     const cid = await uploadFileToPinata(contentFile, {
       name: `course-content-${Date.now()}`,
       keyvalues: {
