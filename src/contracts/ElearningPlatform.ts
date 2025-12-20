@@ -1,5 +1,6 @@
+// src/contracts/ElearningPlatform.ts
 export const elearningPlatformAddress =
-  "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+  "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512";
 
 export const elearningPlatformABI = [
   {
@@ -13,39 +14,16 @@ export const elearningPlatformABI = [
     stateMutability: "nonpayable",
     type: "constructor",
   },
+
+  // ===== Events =====
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "courseId",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "instructor",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "title",
-        type: "string",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "contentCid",
-        type: "string",
-      },
+      { indexed: true, internalType: "uint256", name: "courseId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "instructor", type: "address" },
+      { indexed: false, internalType: "string", name: "title", type: "string" },
+      { indexed: false, internalType: "uint256", name: "price", type: "uint256" },
+      { indexed: false, internalType: "string", name: "contentCid", type: "string" },
     ],
     name: "CourseCreated",
     type: "event",
@@ -53,159 +31,93 @@ export const elearningPlatformABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "student",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "courseId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
+      { indexed: true, internalType: "uint256", name: "courseId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "instructor", type: "address" },
+      { indexed: false, internalType: "string", name: "title", type: "string" },
+      { indexed: false, internalType: "uint256", name: "price", type: "uint256" },
+      { indexed: false, internalType: "string", name: "contentCid", type: "string" },
+    ],
+    name: "CourseUpdated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "student", type: "address" },
+      { indexed: true, internalType: "uint256", name: "courseId", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "price", type: "uint256" },
     ],
     name: "CoursePurchased",
     type: "event",
   },
+
+  // ===== Read =====
   {
     inputs: [],
     name: "certificateNFT",
-    outputs: [
-      {
-        internalType: "contract ICertificateNFT",
-        name: "",
-        type: "address",
-      },
-    ],
+    outputs: [{ internalType: "contract ICertificateNFT", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     name: "courseIds",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     name: "courses",
     outputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "instructor",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "title",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "contentCid",
-        type: "string",
-      },
+      { internalType: "uint256", name: "id", type: "uint256" },
+      { internalType: "address", name: "instructor", type: "address" },
+      { internalType: "uint256", name: "price", type: "uint256" },
+      { internalType: "string", name: "title", type: "string" },
+      { internalType: "string", name: "contentCid", type: "string" },
     ],
     stateMutability: "view",
     type: "function",
   },
+
+  // ===== Write =====
   {
     inputs: [
-      {
-        internalType: "string",
-        name: "_title",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "_price",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "_contentCid",
-        type: "string",
-      },
+      { internalType: "string", name: "_title", type: "string" },
+      { internalType: "uint256", name: "_price", type: "uint256" },
+      { internalType: "string", name: "_contentCid", type: "string" },
     ],
     name: "createCourse",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "courseId",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "courseId", type: "uint256" }],
     stateMutability: "nonpayable",
     type: "function",
   },
+
+  // NEW: updateCourse
+  {
+    inputs: [
+      { internalType: "uint256", name: "_courseId", type: "uint256" },
+      { internalType: "string", name: "_title", type: "string" },
+      { internalType: "uint256", name: "_price", type: "uint256" },
+      { internalType: "string", name: "_contentCid", type: "string" },
+    ],
+    name: "updateCourse",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+
   {
     inputs: [],
     name: "getAllCourse",
     outputs: [
       {
         components: [
-          {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
-          },
-          {
-            internalType: "address",
-            name: "instructor",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "price",
-            type: "uint256",
-          },
-          {
-            internalType: "string",
-            name: "title",
-            type: "string",
-          },
-          {
-            internalType: "string",
-            name: "contentCid",
-            type: "string",
-          },
+          { internalType: "uint256", name: "id", type: "uint256" },
+          { internalType: "address", name: "instructor", type: "address" },
+          { internalType: "uint256", name: "price", type: "uint256" },
+          { internalType: "string", name: "title", type: "string" },
+          { internalType: "string", name: "contentCid", type: "string" },
         ],
         internalType: "struct ElearningPlatform.Course[]",
         name: "",
@@ -216,42 +128,16 @@ export const elearningPlatformABI = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "courseId",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "courseId", type: "uint256" }],
     name: "getCourseById",
     outputs: [
       {
         components: [
-          {
-            internalType: "uint256",
-            name: "id",
-            type: "uint256",
-          },
-          {
-            internalType: "address",
-            name: "instructor",
-            type: "address",
-          },
-          {
-            internalType: "uint256",
-            name: "price",
-            type: "uint256",
-          },
-          {
-            internalType: "string",
-            name: "title",
-            type: "string",
-          },
-          {
-            internalType: "string",
-            name: "contentCid",
-            type: "string",
-          },
+          { internalType: "uint256", name: "id", type: "uint256" },
+          { internalType: "address", name: "instructor", type: "address" },
+          { internalType: "uint256", name: "price", type: "uint256" },
+          { internalType: "string", name: "title", type: "string" },
+          { internalType: "string", name: "contentCid", type: "string" },
         ],
         internalType: "struct ElearningPlatform.Course",
         name: "",
@@ -262,112 +148,48 @@ export const elearningPlatformABI = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_courseId",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "_courseId", type: "uint256" }],
     name: "getCourseContentCid",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
+    outputs: [{ internalType: "string", name: "", type: "string" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "_student",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_courseId",
-        type: "uint256",
-      },
+      { internalType: "address", name: "_student", type: "address" },
+      { internalType: "uint256", name: "_courseId", type: "uint256" },
     ],
     name: "getPurchasedCourseContentCid",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
+    outputs: [{ internalType: "string", name: "", type: "string" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_student",
-        type: "address",
-      },
-    ],
+    inputs: [{ internalType: "address", name: "_student", type: "address" }],
     name: "getPurchasedCourses",
-    outputs: [
-      {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
-    ],
+    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "_student",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_courseId",
-        type: "uint256",
-      },
+      { internalType: "address", name: "_student", type: "address" },
+      { internalType: "uint256", name: "_courseId", type: "uint256" },
     ],
     name: "hasPurchasedCourse",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "nextCourseId",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_courseId",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "_courseId", type: "uint256" }],
     name: "purchaseCourse",
     outputs: [],
     stateMutability: "payable",
@@ -375,73 +197,31 @@ export const elearningPlatformABI = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+      { internalType: "address", name: "", type: "address" },
+      { internalType: "uint256", name: "", type: "uint256" },
     ],
     name: "purchases",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+      { internalType: "address", name: "", type: "address" },
+      { internalType: "uint256", name: "", type: "uint256" },
     ],
     name: "studentCourseIndex",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+      { internalType: "address", name: "", type: "address" },
+      { internalType: "uint256", name: "", type: "uint256" },
     ],
     name: "studentCourses",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },

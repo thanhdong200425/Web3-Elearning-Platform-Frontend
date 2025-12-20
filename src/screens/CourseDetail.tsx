@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@heroui/button";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Pencil } from "lucide-react";
 import { useAccount } from "wagmi";
 import { addToast } from "@heroui/toast";
 import Header from "@/components/layout/Header";
@@ -12,6 +12,7 @@ import {
   buildImageUrl,
   calculateCourseStats,
 } from "@/types/courseTypes";
+import { useAccount } from "wagmi";
 
 // Course Detail Components
 import CourseDetailHeader from "@/components/course/CourseDetailHeader";
@@ -29,6 +30,8 @@ const CourseDetail: React.FC = () => {
   const { isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+
+  const { address } = useAccount();
 
   // Parse course ID from URL
   const courseId = id ? BigInt(id) : undefined;
@@ -146,6 +149,16 @@ const CourseDetail: React.FC = () => {
     }
   }, [purchaseError]);
 
+  const canEdit =
+    !!address &&
+    !!courseData?.instructor &&
+    address.toLowerCase() === courseData.instructor.toLowerCase();
+
+  const handleEdit = () => {
+    if (!courseData) return;
+    navigate(`/course/${courseData.id.toString()}/edit`);
+  };
+
   // Loading state
   if (isLoading || (isLoadingContent && !courseData)) {
     return (
@@ -180,6 +193,21 @@ const CourseDetail: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
+
+      {/* Top action bar */}
+      <div className="max-w-[1280px] mx-auto px-8 pt-6">
+        <div className="flex justify-end">
+          {canEdit && (
+            <Button
+              onPress={handleEdit}
+              className="bg-gray-900 text-white"
+              startContent={<Pencil className="w-4 h-4" />}
+            >
+              Edit course
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Header Section */}
       <CourseDetailHeader
