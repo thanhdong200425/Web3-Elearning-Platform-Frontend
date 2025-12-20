@@ -1,10 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Loader2, AlertCircle, Pencil } from "lucide-react";
+import { useAccount } from "wagmi";
+import { addToast } from "@heroui/toast";
 import Header from "@/components/layout/Header";
 import { useCourseData } from "@/hooks/useCourseData";
-import { TabType, buildImageUrl, calculateCourseStats } from "@/types/courseTypes";
+import { usePurchaseCourse } from "@/hooks/usePurchaseCourse";
+import {
+  TabType,
+  buildImageUrl,
+  calculateCourseStats,
+} from "@/types/courseTypes";
 import { useAccount } from "wagmi";
 
 // Course Detail Components
@@ -15,11 +22,14 @@ import CourseOverviewTab from "@/components/course/CourseOverviewTab";
 import CourseCurriculumTab from "@/components/course/CourseCurriculumTab";
 import CourseInstructorTab from "@/components/course/CourseInstructorTab";
 import CourseSidebar from "@/components/course/CourseSidebar";
+import PurchaseConfirmationModal from "@/components/modals/PurchaseConfirmationModal";
 
 const CourseDetail: React.FC = () => {
   const navigate = useNavigate();
   const { courseId: id } = useParams<{ courseId: string }>();
+  const { isConnected } = useAccount();
   const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   const { address } = useAccount();
 
@@ -35,7 +45,17 @@ const CourseDetail: React.FC = () => {
     isLoadingContent,
     isError,
     contentError,
+    hasPurchased,
+    isInstructor,
   } = useCourseData(courseId);
+
+  // Purchase course hook
+  const {
+    purchaseCourse,
+    isPending: isPurchasing,
+    isSuccess: isPurchaseSuccess,
+    error: purchaseError,
+  } = usePurchaseCourse();
 
   // Calculate stats
   const { totalLessons, totalSections } = calculateCourseStats(courseContent);
@@ -45,11 +65,89 @@ const CourseDetail: React.FC = () => {
 
   // Handlers
   const handleBack = () => navigate("/");
-  const handleEnroll = () => {
-    if (courseData) {
-      navigate(`/course/${courseData.id.toString()}/learn`);
+
+  const handlePurchase = () => {
+    if (!isConnected) {
+      addToast({
+        title: "Please connect your wallet first",
+        color: "danger",
+      });
+      return;
+    }
+
+    if (!courseData) {
+      addToast({
+        title: "Course data not loaded",
+        color: "danger",
+      });
+      return;
+    }
+
+    // Show confirmation modal
+    setShowPurchaseModal(true);
+  };
+
+  const handleConfirmPurchase = () => {
+    if (!courseData) return;
+
+    try {
+      purchaseCourse(courseData.id, courseData.price);
+    } catch (error) {
+      console.error("Purchase error:", error);
+      addToast({
+        title:
+          error instanceof Error
+            ? error.message
+            : "Failed to initiate purchase",
+        color: "danger",
+      });
     }
   };
+
+  const handleEnroll = () => {
+    if (!isConnected) {
+      addToast({
+        title: "Please connect your wallet first",
+        color: "danger",
+      });
+      return;
+    }
+
+    if (courseData) {
+      // If already purchased or is instructor, go directly to course
+      if (hasPurchased || isInstructor) {
+        navigate(`/course/${courseData.id.toString()}/learn`);
+      } else {
+        // Otherwise, show purchase needed message
+        addToast({
+          title: "Please purchase the course first",
+          color: "danger",
+        });
+      }
+    }
+  };
+
+  // Handle purchase success
+  useEffect(() => {
+    if (isPurchaseSuccess && courseData) {
+      addToast({
+        title: "Course purchased successfully!",
+        color: "success",
+      });
+      // Close modal and navigate to learn page after successful purchase
+      setTimeout(() => {
+        setShowPurchaseModal(false);
+        navigate(`/course/${courseData.id.toString()}/learn`);
+      }, 2000);
+    }
+  }, [isPurchaseSuccess, courseData, navigate]);
+
+  // Handle purchase error
+  useEffect(() => {
+    if (purchaseError) {
+      console.error("Purchase error:", purchaseError);
+    }
+  }, [purchaseError]);
 
   const canEdit =
     !!address &&
@@ -125,6 +223,10 @@ const CourseDetail: React.FC = () => {
         courseData={courseData}
         imageUrl={imageUrl}
         onEnroll={handleEnroll}
+        hasPurchased={hasPurchased}
+        isInstructor={isInstructor}
+        isPurchasing={isPurchasing}
+        onPurchase={handlePurchase}
       />
 
       {/* Main Content Area */}
@@ -163,6 +265,17 @@ const CourseDetail: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Purchase Confirmation Modal */}
+      <PurchaseConfirmationModal
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+        onConfirm={handleConfirmPurchase}
+        courseData={courseData}
+        isPurchasing={isPurchasing}
+        isSuccess={isPurchaseSuccess}
+        error={purchaseError}
+      />
     </div>
   );
 };

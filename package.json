@@ -57,7 +57,7 @@
     "viem": "^2.38.4",
     "wagmi": "^2.19.0",
     "zod": "^4.1.12",
-    "zod-to-json-schema": "^3.24.6"
+    "zod-to-json-schema": "^3.25.0"
   },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",

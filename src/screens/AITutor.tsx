@@ -1,24 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, FileText, Route } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 
 import Header from "@/components/layout/Header";
-import ContentFormatCard from "@/components/cards/ContentFormatCard";
 import SuggestionChip from "@/components/ui/SuggestionChip";
-import AssessmentCheckbox from "@/components/forms/AssessmentCheckbox";
 import { generateCourseContent } from "@/services/aiService";
 import { addToast } from "@heroui/toast";
-
-type ContentFormat = "full-course" | "study-guide" | "learning-path";
 
 const AITutor: React.FC = () => {
   const navigate = useNavigate();
   const [learningTopic, setLearningTopic] = useState("Smart Contract Security");
-  const [contentFormat, setContentFormat] =
-    useState<ContentFormat>("full-course");
-  const [includeAssessments, setIncludeAssessments] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const suggestionTopics = [
@@ -37,11 +30,8 @@ const AITutor: React.FC = () => {
     try {
       const courseData = await generateCourseContent({
         topic: learningTopic,
-        contentFormat: contentFormat,
-        includeAssessments: includeAssessments,
       });
 
-      // Navigate to AI result page with the generated course data
       navigate("/ai-result", { state: { courseData } });
     } catch (error) {
       console.error("Error generating content:", error);
@@ -106,44 +96,6 @@ const AITutor: React.FC = () => {
               ))}
             </div>
           </div>
-
-          {/* Content Format Selection */}
-          <div className="flex flex-col gap-3">
-            <label className="text-sm font-normal leading-[14px] text-[#314158]">
-              Content format
-            </label>
-            <div className="flex flex-col gap-3">
-              <ContentFormatCard
-                description="Comprehensive learning path with modules"
-                icon={Sparkles}
-                isSelected={contentFormat === "full-course"}
-                title="Full Course"
-                onSelect={() => setContentFormat("full-course")}
-              />
-              <ContentFormatCard
-                description="Condensed reference material"
-                icon={FileText}
-                isSelected={contentFormat === "study-guide"}
-                title="Study Guide"
-                onSelect={() => setContentFormat("study-guide")}
-              />
-              <ContentFormatCard
-                description="Step-by-step progression plan"
-                icon={Route}
-                isSelected={contentFormat === "learning-path"}
-                title="Learning Path"
-                onSelect={() => setContentFormat("learning-path")}
-              />
-            </div>
-          </div>
-
-          {/* Interactive Assessments Checkbox */}
-          <AssessmentCheckbox
-            checked={includeAssessments}
-            description="Add quizzes and practice exercises to test your understanding"
-            label="Include interactive assessments"
-            onChange={setIncludeAssessments}
-          />
 
           {/* Generate Button */}
           <Button
