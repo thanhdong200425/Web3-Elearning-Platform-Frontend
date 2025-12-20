@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Loader2, AlertCircle, Pencil } from "lucide-react";
-import { useAccount } from "wagmi";
 import { addToast } from "@heroui/toast";
 import Header from "@/components/layout/Header";
 import { useCourseData } from "@/hooks/useCourseData";

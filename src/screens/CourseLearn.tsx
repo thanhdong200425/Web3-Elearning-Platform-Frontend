@@ -17,6 +17,14 @@ import {
 import { useAccount } from "wagmi";
 import { useCourseData } from "@/hooks/useCourseData";
 import { CourseLesson, calculateCourseStats } from "@/types/courseTypes";
+import { addToast } from "@heroui/toast";
+import {
+  loadCourseProgress,
+  markLessonComplete,
+  isLessonCompleted,
+  isCourseComplete,
+} from "@/utils/progressManager";
+import { ClaimCertificate, CertificateViewer } from "@/components/course/ClaimCertificate";
 
 interface ExtendedLesson extends CourseLesson {
   sectionIndex: number;
@@ -65,9 +73,28 @@ const CourseLearn: React.FC = () => {
 
   const [expandedSections, setExpandedSections] = useState<number[]>([0]);
   const [currentLessonIndex, setCurrentLessonIndex] = useState<number>(0);
-  const [completedLessons, setCompletedLessons] = useState<Set<number>>(new Set());
+  const [courseProgress, setCourseProgress] = useState(() =>
+    loadCourseProgress(id || '') || { completedLessons: 0, percentageComplete: 0, lessons: new Map() }
+  );
+  const [certificateImageCID, setCertificateImageCID] = useState<string | null>(
+    localStorage.getItem(`cert_image_${id}`) || null
+  );
 
   const currentLesson = allLessons[currentLessonIndex];
+  const { address } = useAccount();
+
+  // Check if course is complete
+  const isComplete = isCourseComplete(id || '');
+
+  // Update progress when course content changes
+  useEffect(() => {
+    if (id) {
+      const progress = loadCourseProgress(id);
+      if (progress) {
+        setCourseProgress(progress);
+      }
+    }
+  }, [id]);
 
   const handleExitCourse = () => {
     navigate(`/course/${id}`);
@@ -86,11 +113,30 @@ const CourseLearn: React.FC = () => {
   };
 
   const handleMarkComplete = () => {
-    setCompletedLessons((prev) => {
-      const newSet = new Set(prev);
-      newSet.add(currentLessonIndex);
-      return newSet;
+    if (!currentLesson || !id) return;
+
+    const updatedProgress = markLessonComplete(
+      id,
+      currentLesson.sectionIndex,
+      currentLesson.lessonIndex,
+      totalLessons
+    );
+
+    setCourseProgress(updatedProgress);
+
+    addToast({
+      title: 'Lesson Completed!',
+      description: `Progress: ${updatedProgress.completedLessons}/${totalLessons} lessons`,
+      color: 'success',
+      timeout: 3000,
     });
+
+    // Auto-advance to next lesson if not the last one
+    if (currentLessonIndex < allLessons.length - 1) {
+      setTimeout(() => {
+        setCurrentLessonIndex(currentLessonIndex + 1);
+      }, 500);
+    }
   };
 
   const handleNextLesson = () => {
@@ -191,7 +237,7 @@ const CourseLearn: React.FC = () => {
               {courseMetadata?.title || courseData.title}
             </h1>
             <p className="text-[#6a7282] text-sm">
-              {completedLessons.size} of {totalLessons} lessons completed
+              {courseProgress.completedLessons} of {totalLessons} lessons completed ({courseProgress.percentageComplete}%)
             </p>
           </div>
         </div>
@@ -251,6 +297,7 @@ const CourseLearn: React.FC = () => {
                     <div className="border-t border-gray-200">
                       {section.lessons?.map((lesson, lessonIndex) => {
                         const currentGlobalIndex = lessonGlobalIndex + lessonIndex;
+                        const isCompleted = isLessonCompleted(id || '', sectionIndex, lessonIndex);
                         return (
                           <button
                             key={lessonIndex}
@@ -270,6 +317,9 @@ const CourseLearn: React.FC = () => {
                               >
                                 {lesson.title}
                               </span>
+                              {isCompleted && (
+                                <CheckCircle className="w-4 h-4 text-green-500 fill-green-500" />
+                              )}
                             </div>
                           </button>
                         );
@@ -316,21 +366,54 @@ const CourseLearn: React.FC = () => {
               {currentLesson?.type === "text" && (
                 <Card className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
                   <p className="text-[#364153] text-base leading-relaxed whitespace-pre-wrap">
-                    {currentLesson.content || "Lesson content will be displayed here."}
+                    {currentLesson.content ? String(currentLesson.content) : "Lesson content will be displayed here."}
                   </p>
                 </Card>
               )}
 
               {/* Mark as Complete Button */}
-              <div className="flex justify-center">
-                <Button
-                  onPress={handleMarkComplete}
-                  className="bg-[#030213] text-white rounded-lg h-10 px-6 text-sm flex items-center gap-2"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  Mark as Complete
-                </Button>
-              </div>
+              {currentLesson && (
+                <div className="flex justify-center">
+                  {isLessonCompleted(id || '', currentLesson.sectionIndex, currentLesson.lessonIndex) ? (
+                    <Button
+                      disabled
+                      className="bg-green-600 text-white rounded-lg h-10 px-6 text-sm flex items-center gap-2 opacity-75 cursor-not-allowed"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Completed
+                    </Button>
+                  ) : (
+                    <Button
+                      onPress={handleMarkComplete}
+                      className="bg-[#030213] text-white rounded-lg h-10 px-6 text-sm flex items-center gap-2 hover:bg-[#050520]"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Mark as Complete
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Certificate Section - Shows when course is complete */}
+              {isComplete && address && id && (
+                <div className="mt-8">
+                  <CertificateViewer
+                    courseId={id}
+                    studentAddress={address}
+                  />
+                  {!certificateImageCID && (
+                    <ClaimCertificate
+                      courseId={id}
+                      courseName={courseMetadata?.title || courseData.title}
+                      instructorAddress={courseData.instructor}
+                      onSuccess={(imageCID) => {
+                        setCertificateImageCID(imageCID);
+                        localStorage.setItem(`cert_image_${id}`, imageCID);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
