@@ -1,101 +1,81 @@
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
+import type { CourseContent } from "@/types/courseTypes";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 const ai = new GoogleGenAI({
   apiKey: import.meta.env.VITE_GEMINI_API_KEY,
 });
 
-const keyConceptSchema = z.object({
-  title: z.string().describe("Title of the key concept"),
-  description: z
-    .string()
-    .describe("Detailed description explaining the concept"),
-});
-
 const lessonSchema = z.object({
-  id: z.string().describe("Unique identifier (e.g., 'lesson-1-1')"),
   title: z.string().describe("Title of the lesson"),
-  duration: z
-    .string()
-    .describe("Estimated duration (e.g., '12 min')")
-    .optional(),
-  type: z.enum(["lesson", "quiz", "case-study"]).describe("Type of lesson"),
-
-  overview: z.string().describe("Comprehensive overview of the lesson"),
-  content: z.string().describe("Detailed content of the lesson"),
-  keyConcepts: z.array(keyConceptSchema).describe("Key concepts covered"),
+  content: z.string().describe("Detailed content of the lesson").optional(),
+  type: z.enum(["text", "video"]).describe("Type of lesson").optional(),
 });
 
-const moduleSchema = z.object({
-  id: z.string().describe("Unique identifier (e.g., 'module-1')"),
-  title: z.string().describe("Title of the module"),
+const sectionSchema = z.object({
+  title: z.string().describe("Title of the section"),
   lessons: z
     .array(lessonSchema)
-    .describe("Array of lessons with their full content"),
+    .describe("Array of lessons with their content")
+    .optional(),
 });
 
-const courseSchema = z.object({
-  courseTitle: z.string().describe("Title of the entire course"),
-  modules: z
-    .array(moduleSchema)
-    .describe("Course modules containing all lessons and content"),
+const courseContentSchema = z.object({
+  sections: z
+    .array(sectionSchema)
+    .describe("Course sections containing lessons")
+    .optional(),
 });
 
-export type Course = z.infer<typeof courseSchema>;
-export type Module = z.infer<typeof moduleSchema>;
-export type Lesson = z.infer<typeof lessonSchema>;
+export type GeneratedCourseContent = z.infer<typeof courseContentSchema>;
 
 interface GenerateCourseContentParams {
   topic: string;
-  contentFormat?: "full-course" | "study-guide" | "learning-path";
-  includeAssessments?: boolean;
 }
 
 export async function generateCourseContent({
   topic,
-  contentFormat = "full-course",
-  includeAssessments = true,
-}: GenerateCourseContentParams): Promise<Course> {
+}: GenerateCourseContentParams): Promise<CourseContent> {
   try {
-    const formatInstructions = {
-      "full-course":
-        "Create a comprehensive full course with multiple modules, each containing several lessons. Include detailed content for each lesson.",
-      "study-guide":
-        "Create a condensed study guide format with key modules and essential lessons. Focus on the most important concepts.",
-      "learning-path":
-        "Create a step-by-step learning path that guides the student through progressive modules building upon each other.",
-    };
-
-    const assessmentInstruction = includeAssessments
-      ? "Include interactive assessments (quizzes) throughout the course to test understanding. Add at least one quiz per module."
-      : "Focus on instructional content without assessments.";
-
     const prompt = `You are an expert AI tutor specializing in creating comprehensive, engaging, and pedagogically sound educational content.
 
-Your task is to create a complete course structure for the topic: "${topic}"
+    Your task is to create a complete course structure for the topic: "${topic}"
 
-${formatInstructions[contentFormat]}
+    Requirements:
+    1. Create 3-5 sections, each with multiple lessons
+    2. Each section MUST have a "title" field and a "lessons" array
+    3. Each lesson MUST be a flat object with ONLY these fields:
+      - "title" (string): The lesson title
+      - "content" (string): Detailed educational content in clear paragraphs
+      - "type" (string): Either "text" or "video"
+    4. Do NOT nest lessons inside lessons - keep the structure flat
+    5. The content should be comprehensive and educational
 
-${assessmentInstruction}
+    Example structure:
+    {
+      "sections": [
+        {
+          "title": "Section Title",
+          "lessons": [
+            {
+              "title": "Lesson Title",
+              "content": "Detailed lesson content here...",
+              "type": "text"
+            }
+          ]
+        }
+      ]
+    }
 
-Requirements:
-1. Create a course includes a title in this key name: 'courseTitle' and modules (should 3 - 4 modules)
-2. Each module MUST have an 'id' (e.g., 'module-1') and a 'title'.
-3. Each lesson MUST have an 'id' (e.g., 'lesson-1-1'), 'title', 'type', 'content', 'overview', and 'keyConcepts'. The content part should include text only without any code snippets or lists.
-4: Lesson type MUST be one of these values: 'lesson', 'quiz', or 'case-study'.
-5: Key concepts MUST include a 'title' and a detailed 'description'. please don't include ';' at the end of description.
-
-Please structure the response strictly in JSON format according to the schema provided.
-
-Generate a complete course structure with all modules, lessons, and detailed lesson content.`;
+    Please structure the response strictly in JSON format according to the schema provided.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        responseJsonSchema: zodToJsonSchema(courseSchema),
+        responseJsonSchema: zodToJsonSchema(courseContentSchema as any),
       },
     });
 
@@ -113,12 +93,10 @@ Generate a complete course structure with all modules, lessons, and detailed les
         result = JSON.parse(result);
       }
     } catch (e) {
-      throw new Error("Failed to parse AI response as  with error: " + e);
+      throw new Error("Failed to parse AI response with error: " + e);
     }
 
-    console.log("AI Response:", result);
-
-    const courseData = courseSchema.parse(result);
+    const courseData = courseContentSchema.parse(result);
 
     return courseData;
   } catch (error) {

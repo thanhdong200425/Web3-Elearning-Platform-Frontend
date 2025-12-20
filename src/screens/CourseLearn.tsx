@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Card } from "@heroui/card";
@@ -12,7 +12,9 @@ import {
   Play,
   Loader2,
   AlertCircle,
+  Lock,
 } from "lucide-react";
+import { useAccount } from "wagmi";
 import { useCourseData } from "@/hooks/useCourseData";
 import { CourseLesson, calculateCourseStats } from "@/types/courseTypes";
 
@@ -24,6 +26,7 @@ interface ExtendedLesson extends CourseLesson {
 const CourseLearn: React.FC = () => {
   const navigate = useNavigate();
   const { courseId: id } = useParams<{ courseId: string }>();
+  const { isConnected } = useAccount();
 
   // Parse course ID from URL
   const courseId = id ? BigInt(id) : undefined;
@@ -36,6 +39,9 @@ const CourseLearn: React.FC = () => {
     isLoading,
     isLoadingContent,
     isError,
+    hasPurchased,
+    isCheckingPurchase,
+    isInstructor,
   } = useCourseData(courseId);
 
   // Calculate stats
@@ -113,12 +119,45 @@ const CourseLearn: React.FC = () => {
   const isFirstLesson = currentLessonIndex === 0;
   const isLastLesson = currentLessonIndex === allLessons.length - 1;
 
+  // Check purchase access and redirect if needed
+  useEffect(() => {
+    // Wait for all checks to complete
+    if (isLoading || isLoadingContent || isCheckingPurchase) return;
+
+    // If not connected, redirect to course detail
+    if (!isConnected) {
+      navigate(`/course/${id}`);
+      return;
+    }
+
+    // If not purchased and not instructor, redirect to course detail
+    if (!hasPurchased && !isInstructor && courseData) {
+      navigate(`/course/${id}`);
+    }
+  }, [isLoading, isLoadingContent, isCheckingPurchase, isConnected, hasPurchased, isInstructor, navigate, id, courseData]);
+
   // Loading state
-  if (isLoading || isLoadingContent) {
+  if (isLoading || isLoadingContent || isCheckingPurchase) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
         <p className="text-gray-600 text-lg">Loading course from blockchain & IPFS...</p>
+      </div>
+    );
+  }
+
+  // Access denied state
+  if (!isConnected || (!hasPurchased && !isInstructor)) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <Lock className="w-12 h-12 text-yellow-500 mb-4" />
+        <p className="text-gray-600 text-lg mb-2">Course Access Restricted</p>
+        <p className="text-gray-500 text-sm mb-4">
+          {!isConnected ? "Please connect your wallet to access this course" : "Please purchase this course to access the content"}
+        </p>
+        <Button onPress={() => navigate(`/course/${id}`)} className="bg-blue-600 text-white">
+          {!isConnected ? "Back to Course" : "Purchase Course"}
+        </Button>
       </div>
     );
   }

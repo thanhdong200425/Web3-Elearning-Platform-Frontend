@@ -7,6 +7,7 @@ import {
     CheckCircle2,
     Copy,
     Infinity,
+    Loader2,
 } from "lucide-react";
 import { OnChainCourse } from "@/types/courseTypes";
 import { formatEther } from "viem";
@@ -15,20 +16,53 @@ interface CourseEnrollmentCardProps {
     courseData: OnChainCourse;
     imageUrl: string;
     onEnroll: () => void;
+    hasPurchased?: boolean;
+    isInstructor?: boolean;
+    isPurchasing?: boolean;
+    onPurchase?: () => void;
 }
 
 const CourseEnrollmentCard: React.FC<CourseEnrollmentCardProps> = ({
     courseData,
     imageUrl,
     onEnroll,
+    hasPurchased = false,
+    isInstructor = false,
+    isPurchasing = false,
+    onPurchase,
 }) => {
     const [copied, setCopied] = useState(false);
     const priceInEth = formatEther(courseData.price);
+    const isFree = courseData.price === 0n;
 
     const handleCopyAddress = () => {
         navigator.clipboard.writeText(courseData.contentCid);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleButtonClick = () => {
+        if (hasPurchased || isInstructor) {
+            onEnroll();
+        } else if (onPurchase) {
+            onPurchase();
+        } else {
+            onEnroll();
+        }
+    };
+
+    const getButtonText = () => {
+        if (isPurchasing) return "Processing...";
+        if (isInstructor) return "View Course";
+        if (hasPurchased) return "Go to Course";
+        if (isFree) return "Enroll for Free";
+        return "Purchase Course";
+    };
+
+    const getButtonIcon = () => {
+        if (isPurchasing) return <Loader2 className="w-4 h-4 animate-spin" />;
+        if (hasPurchased || isInstructor) return <CheckCircle2 className="w-4 h-4" />;
+        return null;
     };
 
     return (
@@ -55,20 +89,53 @@ const CourseEnrollmentCard: React.FC<CourseEnrollmentCardProps> = ({
 
                     <div className="p-5">
                         {/* Price */}
-                        <div className="mb-6">
-                            <div className="flex items-baseline gap-2 mb-1">
-                                <span className="text-[#101828] text-3xl font-bold">{priceInEth}</span>
-                                <span className="text-[#4a5565] text-xl">ETH</span>
+                        {!isInstructor && (
+                            <div className="mb-6">
+                                {hasPurchased ? (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-2">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                            <span className="text-green-800 font-semibold">Purchased</span>
+                                        </div>
+                                        <p className="text-green-700 text-xs">You have access to this course</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="flex items-baseline gap-2 mb-1">
+                                            <span className="text-[#101828] text-3xl font-bold">{priceInEth}</span>
+                                            <span className="text-[#4a5565] text-xl">ETH</span>
+                                        </div>
+                                        <p className="text-[#6a7282] text-xs">
+                                            {isFree ? "Free course" : "One-time payment"}
+                                        </p>
+                                    </>
+                                )}
                             </div>
-                            <p className="text-[#6a7282] text-xs">One-time payment</p>
-                        </div>
+                        )}
 
-                        {/* Enroll Button */}
+                        {/* Instructor Badge */}
+                        {isInstructor && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Award className="w-5 h-5 text-blue-600" />
+                                    <span className="text-blue-800 font-semibold">Your Course</span>
+                                </div>
+                                <p className="text-blue-700 text-xs">You are the instructor</p>
+                            </div>
+                        )}
+
+                        {/* Action Button */}
                         <Button
-                            onPress={onEnroll}
-                            className="w-full bg-[#030213] text-white rounded-lg h-10 text-sm font-normal mb-8"
+                            onPress={handleButtonClick}
+                            disabled={isPurchasing}
+                            className={`w-full rounded-lg h-10 text-sm font-normal mb-8 flex items-center justify-center gap-2 ${
+                                hasPurchased || isInstructor
+                                    ? "bg-green-600 text-white hover:bg-green-700"
+                                    : "bg-[#030213] text-white"
+                            } ${isPurchasing ? "opacity-70 cursor-not-allowed" : ""}`}
                         >
-                            Enroll Now
+                            {getButtonIcon()}
+                            {getButtonText()}
                         </Button>
 
                         {/* Features */}
