@@ -1,357 +1,281 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import {
-  usePublicClient,
-  useAccount,
-  useReadContract,
-  useWriteContract,
-} from "wagmi";
-import { formatEther, parseEther } from "viem";
-import {
-  elearningPlatformABI,
-  elearningPlatformAddress,
-} from "@/contracts/ElearningPlatform";
-import { addToast } from "@heroui/toast";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@heroui/button";
+import { Loader2, AlertCircle, Pencil } from "lucide-react";
+import { useAccount } from "wagmi";
+import { addToast } from "@heroui/toast";
 import Header from "@/components/layout/Header";
-import BackButton from "@/components/buttons/BackButton";
+import { useCourseData } from "@/hooks/useCourseData";
+import { usePurchaseCourse } from "@/hooks/usePurchaseCourse";
+import {
+  TabType,
+  buildImageUrl,
+  calculateCourseStats,
+} from "@/types/courseTypes";
+import { useAccount } from "wagmi";
 
-const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
-
-interface Course {
-  id: bigint;
-  instructor: string;
-  price: bigint;
-  title: string;
-  contentCid: string;
-  metadata?: {
-    description: string;
-    shortDescription: string;
-    imageCid: string;
-    category: string;
-    rating: number;
-  };
-}
+// Course Detail Components
+import CourseDetailHeader from "@/components/course/CourseDetailHeader";
+import CourseEnrollmentCard from "@/components/course/CourseEnrollmentCard";
+import CourseTabs from "@/components/course/CourseTabs";
+import CourseOverviewTab from "@/components/course/CourseOverviewTab";
+import CourseCurriculumTab from "@/components/course/CourseCurriculumTab";
+import CourseInstructorTab from "@/components/course/CourseInstructorTab";
+import CourseSidebar from "@/components/course/CourseSidebar";
+import PurchaseConfirmationModal from "@/components/modals/PurchaseConfirmationModal";
 
 const CourseDetail: React.FC = () => {
-  const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
-  const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
+  const { courseId: id } = useParams<{ courseId: string }>();
+  const { isConnected } = useAccount();
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+
+  const { address } = useAccount();
+
+  // Parse course ID from URL
+  const courseId = id ? BigInt(id) : undefined;
+
+  // Fetch course data using custom hook
   const {
-    writeContract,
-    isPending,
-    isSuccess,
-    error: writeError,
-  } = useWriteContract();
+    courseData,
+    courseContent,
+    courseMetadata,
+    isLoading,
+    isLoadingContent,
+    isError,
+    contentError,
+    hasPurchased,
+    isInstructor,
+  } = useCourseData(courseId);
 
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [hasPurchased, setHasPurchased] = useState(false);
-  const [checkingPurchase, setCheckingPurchase] = useState(true);
+  // Purchase course hook
+  const {
+    purchaseCourse,
+    isPending: isPurchasing,
+    isSuccess: isPurchaseSuccess,
+    error: purchaseError,
+  } = usePurchaseCourse();
 
-  // Read course data
-  const { data: courseData } = useReadContract({
-    address: elearningPlatformAddress,
-    abi: elearningPlatformABI,
-    functionName: "courses",
-    args: [BigInt(courseId || "0")],
-    query: {
-      enabled: !!courseId,
-    },
-  }) as { data?: [bigint, string, bigint, string, string] };
+  // Calculate stats
+  const { totalLessons, totalSections } = calculateCourseStats(courseContent);
 
-  // Check if user has purchased
-  const { data: purchased } = useReadContract({
-    address: elearningPlatformAddress,
-    abi: elearningPlatformABI,
-    functionName: "hasPurchasedCourse",
-    args: [address || "0x0", BigInt(courseId || "0")],
-    query: {
-      enabled: !!courseId && !!address && isConnected,
-    },
-  }) as { data?: boolean };
+  // Build image URL
+  const imageUrl = buildImageUrl(courseMetadata, courseContent);
 
-  useEffect(() => {
-    if (courseData) {
-      const [id, instructor, price, title, contentCid] = courseData;
+  // Handlers
+  const handleBack = () => navigate("/");
 
-      // Fetch content from IPFS (which may include imageCid)
-      const fetchCourseData = async () => {
-        try {
-          // Fetch content.json from IPFS
-          const contentUrl = `${IPFS_GATEWAY}${contentCid}`;
-          const contentRes = await fetch(contentUrl);
-
-          let metadata = undefined;
-          let imageCid: string | undefined;
-
-          if (contentRes.ok) {
-            const contentData = await contentRes.json();
-
-            // Extract imageCid from content.json if available
-            if (contentData.imageCid) {
-              imageCid = contentData.imageCid;
-            }
-
-            // Try to fetch metadata separately (for backward compatibility)
-            try {
-              // Note: metadataCid is not stored in contract, so we skip this for now
-              // If needed, we can fetch from Pinata API using the contentCid
-            } catch (metaErr) {
-              // Metadata fetch is optional
-            }
-
-            // Create metadata object with imageCid
-            if (imageCid) {
-              metadata = {
-                imageCid,
-                description: contentData.description,
-                shortDescription: contentData.shortDescription,
-                category: contentData.category,
-                rating: contentData.rating || 0,
-              };
-            }
-          }
-
-          setCourse({
-            id,
-            instructor,
-            price,
-            title,
-            contentCid,
-            metadata,
-          });
-        } catch (err) {
-          console.error("Error fetching course data:", err);
-          setCourse({
-            id,
-            instructor,
-            price,
-            title,
-            contentCid,
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchCourseData();
-    }
-  }, [courseData]);
-
-  useEffect(() => {
-    if (purchased !== undefined) {
-      setHasPurchased(purchased);
-      setCheckingPurchase(false);
-    }
-  }, [purchased]);
-
-  useEffect(() => {
-    if (writeError) {
-      addToast({
-        title: "Lỗi",
-        description:
-          writeError.message || "Không thể mua khóa học. Vui lòng thử lại.",
-        color: "danger",
-        timeout: 5000,
-      });
-    }
-  }, [writeError]);
-
-  useEffect(() => {
-    if (isSuccess) {
-      addToast({
-        title: "Thành công",
-        description: "Bạn đã mua khóa học thành công!",
-        color: "success",
-        timeout: 5000,
-      });
-      setHasPurchased(true);
-      // Navigate to course viewer after purchase
-      setTimeout(() => {
-        navigate(`/course/${courseId}/view`);
-      }, 2000);
-    }
-  }, [isSuccess, courseId, navigate]);
-
-  const handlePurchase = async () => {
+  const handlePurchase = () => {
     if (!isConnected) {
       addToast({
-        title: "Chưa kết nối ví",
-        description: "Vui lòng kết nối ví để mua khóa học.",
+        title: "Please connect your wallet first",
         color: "danger",
-        timeout: 3000,
       });
       return;
     }
 
-    if (!course) {
+    if (!courseData) {
+      addToast({
+        title: "Course data not loaded",
+        color: "danger",
+      });
       return;
     }
+
+    // Show confirmation modal
+    setShowPurchaseModal(true);
+  };
+
+  const handleConfirmPurchase = () => {
+    if (!courseData) return;
 
     try {
-      writeContract({
-        address: elearningPlatformAddress,
-        abi: elearningPlatformABI,
-        functionName: "purchaseCourse",
-        args: [course.id],
-        value: course.price,
-      });
+      purchaseCourse(courseData.id, courseData.price);
     } catch (error) {
       console.error("Purchase error:", error);
+      addToast({
+        title:
+          error instanceof Error
+            ? error.message
+            : "Failed to initiate purchase",
+        color: "danger",
+      });
     }
   };
 
-  const handleViewCourse = () => {
-    navigate(`/course/${courseId}/view`);
+  const handleEnroll = () => {
+    if (!isConnected) {
+      addToast({
+        title: "Please connect your wallet first",
+        color: "danger",
+      });
+      return;
+    }
+
+    if (courseData) {
+      // If already purchased or is instructor, go directly to course
+      if (hasPurchased || isInstructor) {
+        navigate(`/course/${courseData.id.toString()}/learn`);
+      } else {
+        // Otherwise, show purchase needed message
+        addToast({
+          title: "Please purchase the course first",
+          color: "danger",
+        });
+      }
+    }
   };
 
-  if (loading || checkingPurchase) {
+  // Handle purchase success
+  useEffect(() => {
+    if (isPurchaseSuccess && courseData) {
+      addToast({
+        title: "Course purchased successfully!",
+        color: "success",
+      });
+      // Close modal and navigate to learn page after successful purchase
+      setTimeout(() => {
+        setShowPurchaseModal(false);
+        navigate(`/course/${courseData.id.toString()}/learn`);
+      }, 2000);
+    }
+  }, [isPurchaseSuccess, courseData, navigate]);
+
+  // Handle purchase error
+  useEffect(() => {
+    if (purchaseError) {
+      console.error("Purchase error:", purchaseError);
+    }
+  }, [purchaseError]);
+
+  const canEdit =
+    !!address &&
+    !!courseData?.instructor &&
+    address.toLowerCase() === courseData.instructor.toLowerCase();
+
+  const handleEdit = () => {
+    if (!courseData) return;
+    navigate(`/course/${courseData.id.toString()}/edit`);
+  };
+
+  // Loading state
+  if (isLoading || (isLoadingContent && !courseData)) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <Header />
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-lg font-medium text-gray-600">Đang tải...</p>
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+          <p className="text-gray-600 text-lg">
+            Loading course from blockchain & IPFS...
+          </p>
         </div>
       </div>
     );
   }
 
-  if (!course) {
+  // Error state
+  if (isError || !courseData || courseData.id === 0n) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
         <Header />
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
-          <p className="text-xl text-gray-600">Không tìm thấy khóa học</p>
-          <BackButton onBack={() => navigate("/")} />
+          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+          <p className="text-gray-600 text-lg mb-4">Course not found</p>
+          <Button onPress={handleBack} className="bg-blue-600 text-white">
+            Back to Home
+          </Button>
         </div>
       </div>
     );
   }
-
-  const imageUrl = course.metadata?.imageCid
-    ? `${IPFS_GATEWAY}${course.metadata.imageCid}`
-    : "https://via.placeholder.com/800x400";
-  const priceInEth = formatEther(course.price);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <BackButton onBack={() => navigate("/")} />
-        </div>
 
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {/* Course Image */}
-          <div className="w-full h-64 md:h-96 bg-gray-200">
-            <img
-              src={imageUrl}
-              alt={course.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-
-          <div className="p-6 md:p-8">
-            {/* Course Title and Info */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                {course.title}
-              </h1>
-
-              <div className="flex flex-wrap items-center gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-600">Giảng viên:</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {course.instructor.substring(0, 6)}...
-                    {course.instructor.substring(course.instructor.length - 4)}
-                  </span>
-                </div>
-                {course.metadata?.category && (
-                  <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full">
-                    {course.metadata.category}
-                  </span>
-                )}
-                {course.metadata?.rating && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-500">★</span>
-                    <span className="text-sm font-medium">
-                      {course.metadata.rating.toFixed(1)}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Price */}
-              <div className="text-3xl font-bold text-blue-600 mb-6">
-                {priceInEth} ETH
-              </div>
-            </div>
-
-            {/* Description */}
-            {course.metadata?.description && (
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold mb-3">Mô tả khóa học</h2>
-                <p className="text-gray-700 leading-relaxed">
-                  {course.metadata.description}
-                </p>
-              </div>
-            )}
-
-            {course.metadata?.shortDescription &&
-              !course.metadata?.description && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold mb-3">Mô tả khóa học</h2>
-                  <p className="text-gray-700 leading-relaxed">
-                    {course.metadata.shortDescription}
-                  </p>
-                </div>
-              )}
-
-            {/* Purchase Button */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              {hasPurchased ? (
-                <div className="space-y-4">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <p className="text-green-800 font-medium">
-                      ✓ Bạn đã mua khóa học này
-                    </p>
-                  </div>
-                  <Button
-                    size="lg"
-                    className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                    onPress={handleViewCourse}
-                  >
-                    Xem khóa học
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {!isConnected && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                      <p className="text-yellow-800">
-                        Vui lòng kết nối ví để mua khóa học
-                      </p>
-                    </div>
-                  )}
-                  <Button
-                    size="lg"
-                    className="w-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                    onPress={handlePurchase}
-                    disabled={!isConnected || isPending}
-                  >
-                    {isPending
-                      ? "Đang xử lý..."
-                      : `Mua khóa học - ${priceInEth} ETH`}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Top action bar */}
+      <div className="max-w-[1280px] mx-auto px-8 pt-6">
+        <div className="flex justify-end">
+          {canEdit && (
+            <Button
+              onPress={handleEdit}
+              className="bg-gray-900 text-white"
+              startContent={<Pencil className="w-4 h-4" />}
+            >
+              Edit course
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Header Section */}
+      <CourseDetailHeader
+        courseData={courseData}
+        courseMetadata={courseMetadata}
+        totalLessons={totalLessons}
+        totalSections={totalSections}
+        onBack={handleBack}
+      />
+
+      {/* Enrollment Card */}
+      <CourseEnrollmentCard
+        courseData={courseData}
+        imageUrl={imageUrl}
+        onEnroll={handleEnroll}
+        hasPurchased={hasPurchased}
+        isInstructor={isInstructor}
+        isPurchasing={isPurchasing}
+        onPurchase={handlePurchase}
+      />
+
+      {/* Main Content Area */}
+      <div className="max-w-[1280px] mx-auto px-8 pt-8 pb-16">
+        <div className="flex gap-8">
+          {/* Left Content - Tabs */}
+          <div className="flex-1 max-w-[800px]">
+            <CourseTabs activeTab={activeTab} onTabChange={setActiveTab} />
+
+            {activeTab === "overview" && (
+              <CourseOverviewTab
+                courseData={courseData}
+                courseMetadata={courseMetadata}
+                courseContent={courseContent}
+                contentError={contentError}
+              />
+            )}
+
+            {activeTab === "curriculum" && (
+              <CourseCurriculumTab
+                courseContent={courseContent}
+                isLoading={isLoadingContent}
+              />
+            )}
+
+            {activeTab === "instructor" && (
+              <CourseInstructorTab courseData={courseData} />
+            )}
+          </div>
+
+          {/* Right Sidebar */}
+          <CourseSidebar
+            courseData={courseData}
+            totalLessons={totalLessons}
+            totalSections={totalSections}
+          />
+        </div>
+      </div>
+
+      {/* Purchase Confirmation Modal */}
+      <PurchaseConfirmationModal
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+        onConfirm={handleConfirmPurchase}
+        courseData={courseData}
+        isPurchasing={isPurchasing}
+        isSuccess={isPurchaseSuccess}
+        error={purchaseError}
+      />
     </div>
   );
 };

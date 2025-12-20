@@ -5,6 +5,7 @@ const PINATA_API_URL = "https://api.pinata.cloud";
 const getPinataCredentials = () => {
   const apiKey = import.meta.env.VITE_PINATA_API_KEY || "";
   const apiSecret = import.meta.env.VITE_PINATA_API_SECRET || "";
+  const ipfsGateway = import.meta.env.VITE_GATEWAY_URL || "";
 
   if (!apiKey || !apiSecret) {
     throw new Error(
@@ -12,7 +13,7 @@ const getPinataCredentials = () => {
     );
   }
 
-  return { apiKey, apiSecret };
+  return { apiKey, apiSecret, ipfsGateway };
 };
 
 // Types matching CourseFormData
@@ -36,14 +37,30 @@ interface IPFSCourseContent {
       content: string;
       videoUrl?: string;
       type: "text" | "video" | "document";
-      fileCid?: string;  // NEW: CID of uploaded lesson file
-      fileUrl?: string;  // NEW: IPFS URL constructed from CID
+      fileCid?: string; // NEW: CID of uploaded lesson file
+      fileUrl?: string; // NEW: IPFS URL constructed from CID
     }>;
   }>;
   imageCid?: string; // Add imageCid to content structure
 }
 
-
+/**
+ * Convert course content from form format to IPFS format
+ */
+function convertToIPFSFormat(sections: CourseSection[]): IPFSCourseContent {
+  return {
+    sections: sections.map((section) => ({
+      title: section.title,
+      lessons: (section.lessons || []).map((lesson) => ({
+        title: lesson.title,
+        content: lesson.content || "",
+        type: lesson.file ? "video" : "text",
+        // Note: Video files will need to be uploaded separately
+        // For now, we'll handle text content only
+      })),
+    })),
+  };
+}
 
 /**
  * Upload file to Pinata using direct API call
@@ -191,7 +208,10 @@ export async function uploadCourseContent(
                 fileCid = await uploadFileToIPFS(lesson.file);
                 console.log(`✅ Lesson file uploaded. CID: ${fileCid}`);
               } catch (fileError) {
-                console.error(`❌ Failed to upload lesson file: ${lesson.file.name}`, fileError);
+                console.error(
+                  `❌ Failed to upload lesson file: ${lesson.file.name}`,
+                  fileError
+                );
                 // Continue without file if upload fails
               }
             }
@@ -199,9 +219,9 @@ export async function uploadCourseContent(
             return {
               title: lesson.title,
               content: lesson.content || "",
-              type: fileType,  // Use detected type
-              fileCid,  // NEW: Store the uploaded file CID
-              fileUrl: fileCid ? fileCid : undefined,  // NEW: Store CID for direct reference
+              type: fileType, // Use detected type
+              fileCid, // NEW: Store the uploaded file CID
+              fileUrl: fileCid ? fileCid : undefined, // NEW: Store CID for direct reference
             };
           })
         );
@@ -336,3 +356,23 @@ export async function testPinataConnection(): Promise<boolean> {
     return false;
   }
 }
+
+export const getContentFromIPFS = async (cid: string) => {
+  try {
+    const { ipfsGateway } = getPinataCredentials();
+    const response = await fetch(`https://${ipfsGateway}/ipfs/${cid}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Cannot get content from IPFS: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("❌ Error getting content from IPFS:", error);
+    throw new Error(
+      `Cannot get content from IPFS: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+};

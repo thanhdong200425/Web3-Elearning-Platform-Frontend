@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   courseFormSchema,
   CourseFormData,
@@ -17,9 +18,9 @@ import CourseContent from "../components/course/CourseContent";
 import CoursePreview from "../components/course/CoursePreview";
 import BackButton from "@/components/buttons/BackButton";
 import { useWriteContract, useAccount } from "wagmi";
-import { parseEther } from "viem";
+import { parseEther, formatEther } from "viem";
 import { addToast } from "@heroui/toast";
-import { createCourse } from "@/services/courseService";
+import { createCourse, updateCourseIPFS } from "@/services/courseService";
 import { validateCourseForDeployment } from "@/utils/courseValidation";
 
 import {
@@ -27,9 +28,25 @@ import {
   elearningPlatformAddress,
 } from "@/contracts/ElearningPlatform";
 
-const AddCourse: React.FC = () => {
+export type AddCourseMode = "create" | "edit";
+
+type AddCourseProps = {
+  mode?: AddCourseMode;
+  courseId?: bigint;
+  initialValues?: Partial<CourseFormData>;
+  existingIpfs?: { imageCid?: string; contentCid?: string };
+};
+
+const AddCourse: React.FC<AddCourseProps> = ({
+  mode = "create",
+  courseId,
+  initialValues,
+  existingIpfs,
+}) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const totalSteps = 4;
+
+  const isEditMode = mode === "edit";
 
   const steps = useMemo(() => {
     return [
@@ -53,12 +70,27 @@ const AddCourse: React.FC = () => {
       },
       {
         number: 4,
-        title: "Preview & Publish (Deploy)",
+        title: isEditMode ? "Preview & Update (Deploy)" : "Preview & Publish (Deploy)",
         isActive: currentStep === 4,
         isCompleted: false,
       },
     ];
-  }, [currentStep]);
+  }, [currentStep, isEditMode]);
+
+  // For edit mode, make coverImage optional at resolver-level.
+  // We'll enforce it only if there's no existing imageCid on IPFS.
+  const resolverSchema = useMemo(() => {
+    if (!isEditMode) return courseFormSchema;
+    try {
+      // coverImage optional in edit mode
+      return (courseFormSchema as any).extend({
+        coverImage: z.any().optional(),
+      });
+    } catch {
+      // fallback: use original schema if extend not available
+      return courseFormSchema;
+    }
+  }, [isEditMode]);
 
   const {
     register,
@@ -66,9 +98,10 @@ const AddCourse: React.FC = () => {
     setValue,
     getValues,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<CourseFormData>({
-    resolver: zodResolver(courseFormSchema),
+    resolver: zodResolver(resolverSchema),
     defaultValues: {
       title: "",
       shortDescription: "",
@@ -79,8 +112,27 @@ const AddCourse: React.FC = () => {
       coursePrice: 0,
       walletAddress: "",
       sections: [],
+      ...(initialValues || {}),
     },
   });
+
+  // If initialValues is loaded async (EditCourse page), update form values
+  useEffect(() => {
+    if (initialValues) {
+      reset({
+        title: "",
+        shortDescription: "",
+        detailedDescription: "",
+        category: "",
+        coverImage: undefined,
+        paymentToken: "ETH",
+        coursePrice: 0,
+        walletAddress: "",
+        sections: [],
+        ...initialValues,
+      });
+    }
+  }, [initialValues, reset]);
 
   const {
     data: hash,
@@ -89,6 +141,7 @@ const AddCourse: React.FC = () => {
     isSuccess,
     error: writeError,
   } = useWriteContract();
+
   const { isConnected } = useAccount();
 
   const defaultLabelClassNames = useMemo(() => {
@@ -118,16 +171,28 @@ const AddCourse: React.FC = () => {
     if (isSuccess && hash) {
       addToast({
         title: "Success",
-        description: `Course deployed successfully! Transaction hash: ${hash.substring(0, 10)}...`,
+        description: isEditMode
+          ? `Course updated successfully! Tx: ${hash.substring(0, 10)}...`
+          : `Course deployed successfully! Tx: ${hash.substring(0, 10)}...`,
         color: "success",
         timeout: 5000,
         shouldShowTimeoutProgress: true,
       });
     }
-  }, [isSuccess, hash]);
+  }, [isSuccess, hash, isEditMode]);
+
+  const toastProgress = (message: string) => {
+    addToast({
+      title: "Uploading to IPFS",
+      description: message,
+      color: "default",
+      timeout: 2000,
+      shouldShowTimeoutProgress: true,
+    });
+  };
 
   const onSubmit = async (data: CourseFormData) => {
-    // Check if wallet is connected
+    // Check wallet
     if (!isConnected) {
       addToast({
         title: "Wallet Not Connected",
@@ -140,21 +205,65 @@ const AddCourse: React.FC = () => {
     }
 
     try {
-      // Upload course content to IPFS using the service
-      const { contentCid } = await createCourse(data, (message) => {
-        addToast({
-          title: "Uploading to IPFS",
-          description: message,
-          color: "default",
-          timeout: 2000,
-          shouldShowTimeoutProgress: true,
-        });
+      addToast({
+        title: isEditMode ? "Updating Course" : "Creating Course",
+        description: isEditMode
+          ? "Preparing updated data..."
+          : "Preparing data...",
+        color: "default",
+        timeout: 2000,
+        shouldShowTimeoutProgress: true,
       });
 
-      // Deploy to smart contract with the content CID
+      if (!isEditMode) {
+        // CREATE FLOW (unchanged)
+        const { metadataCid } = await createCourse(data, toastProgress);
+
+        addToast({
+          title: "Deploying to Blockchain",
+          description: "Deploying course to blockchain...",
+          color: "default",
+          timeout: 30000,
+          shouldShowTimeoutProgress: true,
+        });
+
+        writeContract({
+          address: elearningPlatformAddress,
+          abi: elearningPlatformABI,
+          functionName: "createCourse",
+          args: [
+            data.title,
+            parseEther(data.coursePrice.toString()),
+            metadataCid as string,
+          ],
+        });
+
+        return;
+      }
+
+      // EDIT FLOW
+      if (!courseId) {
+        throw new Error("Missing courseId for edit mode.");
+      }
+
+      // coverImage optional if existing imageCid exists
+      const hasExistingImage = !!existingIpfs?.imageCid;
+      if (!data.coverImage && !hasExistingImage) {
+        throw new Error("Cover image is required. Please upload cover image.");
+      }
+
+      const { metadataCid: newMetadataCid } = await updateCourseIPFS(
+        data,
+        {
+          imageCid: existingIpfs?.imageCid,
+          contentCid: existingIpfs?.contentCid,
+        },
+        toastProgress
+      );
+
       addToast({
-        title: "Deploying to Blockchain",
-        description: "Deploying course to blockchain...",
+        title: "Updating on Blockchain",
+        description: "Submitting update transaction...",
         color: "default",
         timeout: 30000,
         shouldShowTimeoutProgress: true,
@@ -163,13 +272,25 @@ const AddCourse: React.FC = () => {
       writeContract({
         address: elearningPlatformAddress,
         abi: elearningPlatformABI,
-        functionName: "createCourse",
-        args: [data.title, parseEther(data.coursePrice.toString()), contentCid],
+        functionName: "updateCourse",
+        args: [
+          courseId,
+          data.title,
+          parseEther(data.coursePrice.toString()),
+          newMetadataCid,
+        ],
       });
-
-      console.log("Error message:", writeError);
-    } catch (error) {
-      console.error("❌ Deployment failed:", error);
+    } catch (error: any) {
+      console.error("❌ Deploy/Update failed:", error);
+      addToast({
+        title: "Error",
+        description:
+          error?.message ||
+          "Operation failed. Please check your inputs and try again.",
+        color: "danger",
+        timeout: 5000,
+        shouldShowTimeoutProgress: true,
+      });
     }
   };
 
@@ -182,38 +303,118 @@ const AddCourse: React.FC = () => {
   const handleDeploy = async () => {
     // Trigger validation for all fields
     await handleSubmit(
-      () => { }, // Empty success callback
-      () => { } // Empty error callback
+      () => {},
+      () => {}
     )();
 
-    // Get all current form values and errors
     const formData = getValues();
 
-    // Validate all steps
-    const validationResult = validateCourseForDeployment(
-      formData,
-      errors,
-      isConnected
-    );
+    // Create mode uses existing validation util (no changes)
+    if (!isEditMode) {
+      const validationResult = validateCourseForDeployment(
+        formData,
+        errors,
+        isConnected
+      );
 
-    // If validation fails, show error and redirect to the appropriate step
-    if (!validationResult.isValid) {
+      if (!validationResult.isValid) {
+        addToast({
+          title: validationResult.title || "Validation Error",
+          description:
+            validationResult.message ||
+            "Please fix the errors before deploying.",
+          color: "danger",
+          timeout: 3000,
+          shouldShowTimeoutProgress: true,
+        });
+
+        if (validationResult.step) {
+          setCurrentStep(validationResult.step);
+        }
+        return;
+      }
+
+      handleSubmit(onSubmit)();
+      return;
+    }
+
+    // Edit mode: relax coverImage requirement if existingIpfs.imageCid exists
+    const hasExistingImage = !!existingIpfs?.imageCid;
+    const missingCover = !formData.coverImage && !hasExistingImage;
+
+    if (!formData.title || formData.title.trim() === "") {
       addToast({
-        title: validationResult.title || "Validation Error",
-        description:
-          validationResult.message || "Please fix the errors before deploying.",
+        title: "Validation Error",
+        description: "Course title is required.",
         color: "danger",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });
-
-      if (validationResult.step) {
-        setCurrentStep(validationResult.step);
-      }
+      setCurrentStep(1);
       return;
     }
 
-    // If all validations pass, proceed with deployment
+    if (!formData.shortDescription || formData.shortDescription.trim() === "") {
+      addToast({
+        title: "Validation Error",
+        description: "Short description is required.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      setCurrentStep(1);
+      return;
+    }
+
+    if (!formData.category || formData.category.trim() === "") {
+      addToast({
+        title: "Validation Error",
+        description: "Category is required.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      setCurrentStep(1);
+      return;
+    }
+
+    if (missingCover) {
+      addToast({
+        title: "Validation Error",
+        description: "Cover image is required (no existing image on IPFS).",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      setCurrentStep(1);
+      return;
+    }
+
+    if (!formData.coursePrice || formData.coursePrice <= 0) {
+      addToast({
+        title: "Validation Error",
+        description: "Course price must be greater than zero.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      setCurrentStep(2);
+      return;
+    }
+
+    if (!formData.sections || formData.sections.length === 0) {
+      addToast({
+        title: "Validation Error",
+        description: "At least one section with lessons is required.",
+        color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      setCurrentStep(3);
+      return;
+    }
+
+    // if ok
     handleSubmit(onSubmit)();
   };
 
@@ -222,6 +423,13 @@ const AddCourse: React.FC = () => {
       setCurrentStep(currentStep - 1);
     }
   };
+
+  const existingImagePreviewUrl = useMemo(() => {
+    const cid = existingIpfs?.imageCid;
+    if (!cid) return null;
+    // pinata gateway used in your utils (best-effort here)
+    return `https://gateway.pinata.cloud/ipfs/${cid}`;
+  }, [existingIpfs?.imageCid]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -243,10 +451,12 @@ const AddCourse: React.FC = () => {
                   {/* Header */}
                   <div className="flex flex-col gap-2">
                     <h1 className="text-2xl font-medium text-neutral-950">
-                      Course Information
+                      {isEditMode ? "Edit Course Information" : "Course Information"}
                     </h1>
                     <p className="text-base text-gray-600">
-                      Provide basic information about your course
+                      {isEditMode
+                        ? "Update the information for your existing course"
+                        : "Provide basic information about your course"}
                     </p>
                   </div>
 
@@ -340,11 +550,28 @@ const AddCourse: React.FC = () => {
                       </Select>
                     </div>
 
+                    {/* Existing Cover Preview (edit mode) */}
+                    {isEditMode && existingImagePreviewUrl && !watch("coverImage") && (
+                      <div className="rounded-lg border border-gray-200 p-3">
+                        <div className="text-sm text-gray-700 mb-2">
+                          Current cover image (IPFS):
+                        </div>
+                        <img
+                          src={existingImagePreviewUrl}
+                          alt="Existing cover"
+                          className="w-full max-w-[520px] rounded-lg border border-gray-100"
+                        />
+                        <div className="text-xs text-gray-500 mt-2">
+                          You can upload a new cover image below to replace it.
+                        </div>
+                      </div>
+                    )}
+
                     {/* File Upload */}
                     <FileUpload
                       accept="image/*"
                       error={errors.coverImage}
-                      isRequired={true}
+                      isRequired={!isEditMode && true}
                       name="coverImage"
                       setValue={setValue}
                       value={getValues("coverImage")}
@@ -410,6 +637,9 @@ const AddCourse: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* Debug info (optional) */}
+              {/* <pre>{JSON.stringify(getValues(), null, 2)}</pre> */}
             </div>
           </div>
         </div>

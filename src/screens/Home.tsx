@@ -12,6 +12,7 @@ import HotReleasesSection from "@/components/sections/HotReleasesSection";
 import AllCoursesSection from "@/components/sections/AllCoursesSection";
 import CategoriesSection from "@/components/sections/CategoriesSection";
 import { categoryOptions } from "../schemas/courseForm";
+import { getContentFromIPFS } from "@/services/ipfs";
 
 interface OnChainCourse {
   id: bigint;
@@ -29,8 +30,6 @@ interface Course extends OnChainCourse {
     rating: number;
   };
 }
-
-const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 
 const Home: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -95,18 +94,8 @@ const Home: React.FC = () => {
             let metadata = undefined;
 
             try {
-              const url = `${IPFS_GATEWAY}${course.contentCid}/metadata.json`;
-              const res = await fetch(url);
-
-              if (res.ok) {
-                const data = await res.json();
-
-                // Ensure rating is a number and has default value
-                metadata = {
-                  ...data,
-                  rating: Number(data.rating) || 4.5,
-                };
-              }
+              const res = await getContentFromIPFS(course.contentCid);
+              metadata = res;
             } catch (err) {
               console.warn(
                 `⚠️ Error loading metadata from IPFS (${course.contentCid}):`,
@@ -117,6 +106,8 @@ const Home: React.FC = () => {
             return { ...course, metadata };
           })
         );
+
+        console.log("Fetched courses:", fetchedCourses);
 
         // TypeScript guard: filter out non-Course items (if logic error)
         setCourses(fetchedCourses.filter(Boolean) as Course[]);
