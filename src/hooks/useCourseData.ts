@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract, useAccount } from "wagmi";
 import {
   elearningPlatformABI,
   elearningPlatformAddress,
@@ -19,11 +19,15 @@ interface UseCourseDataResult {
   isLoadingContent: boolean;
   isError: boolean;
   contentError: string | null;
+  hasPurchased: boolean;
+  isCheckingPurchase: boolean;
+  isInstructor: boolean;
 }
 
 export function useCourseData(
   courseId: bigint | undefined
 ): UseCourseDataResult {
+  const { address, isConnected } = useAccount();
   const [courseContent, setCourseContent] = useState<CourseContent | null>(
     null
   );
@@ -51,6 +55,32 @@ export function useCourseData(
     isLoading: boolean;
     isError: boolean;
   };
+
+  // Check if user has purchased the course
+  const {
+    data: hasPurchasedData,
+    isLoading: isCheckingPurchase,
+  } = useReadContract({
+    address: elearningPlatformAddress as `0x${string}`,
+    abi: elearningPlatformABI,
+    functionName: "hasPurchasedCourse",
+    args: [address ?? "0x0", courseId ?? 0n],
+    query: {
+      enabled: courseId !== undefined && isConnected && !!address,
+    },
+  }) as {
+    data?: boolean;
+    isLoading: boolean;
+  };
+
+  // Check if the current user is the instructor
+  const isInstructor =
+    isConnected &&
+    address &&
+    courseData?.instructor &&
+    address.toLowerCase() === courseData.instructor.toLowerCase();
+
+  const hasPurchased = hasPurchasedData === true || isInstructor;
 
   // Fetch content and metadata from IPFS/Pinata
   useEffect(() => {
@@ -144,5 +174,8 @@ export function useCourseData(
     isLoadingContent,
     isError: isContractError,
     contentError,
+    hasPurchased,
+    isCheckingPurchase,
+    isInstructor,
   };
 }
