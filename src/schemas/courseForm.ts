@@ -33,6 +33,7 @@ export const courseFormSchema = z.object({
               id: z.string(),
               title: z.string().min(1, "Lesson title is required"),
               content: z.string().optional(),
+              contentType: z.enum(["text", "video"]).default("text"),
 
               // file upload gốc (giữ nguyên)
               file: z.instanceof(File).optional(),

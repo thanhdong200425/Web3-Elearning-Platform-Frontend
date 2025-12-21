@@ -44,6 +44,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
   existingIpfs,
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
   const totalSteps = 4;
 
   const isEditMode = mode === "edit";
@@ -169,6 +170,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
   // Handle success
   useEffect(() => {
     if (isSuccess && hash) {
+      setUploadProgress("");
       addToast({
         title: "Success",
         description: isEditMode
@@ -182,6 +184,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
   }, [isSuccess, hash, isEditMode]);
 
   const toastProgress = (message: string) => {
+    setUploadProgress(message);
     addToast({
       title: "Uploading to IPFS",
       description: message,
@@ -205,6 +208,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
     }
 
     try {
+      setUploadProgress(isEditMode ? "Preparing updated data..." : "Preparing data...");
       addToast({
         title: isEditMode ? "Updating Course" : "Creating Course",
         description: isEditMode
@@ -219,6 +223,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
         // CREATE FLOW (unchanged)
         const { metadataCid } = await createCourse(data, toastProgress);
 
+        setUploadProgress("Deploying course to blockchain...");
         addToast({
           title: "Deploying to Blockchain",
           description: "Deploying course to blockchain...",
@@ -261,6 +266,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
         toastProgress
       );
 
+      setUploadProgress("Submitting update transaction...");
       addToast({
         title: "Updating on Blockchain",
         description: "Submitting update transaction...",
@@ -282,6 +288,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
       });
     } catch (error: any) {
       console.error("❌ Deploy/Update failed:", error);
+      setUploadProgress("");
       addToast({
         title: "Error",
         description:
@@ -597,6 +604,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
               {currentStep === 4 && (
                 <CoursePreview
                   isDeploying={isPending}
+                  uploadProgress={uploadProgress}
                   watch={watch}
                   onDeploy={handleDeploy}
                 />
