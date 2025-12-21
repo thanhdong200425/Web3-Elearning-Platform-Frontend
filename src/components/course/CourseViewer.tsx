@@ -89,15 +89,17 @@ const CourseViewer: React.FC = () => {
   }) as { data?: [bigint, string, bigint, string, string] };
 
   // Check if certificate already claimed
-  const { data: hasCertificate, refetch: refetchCertificate } = useReadContract({
-    address: elearningPlatformAddress,
-    abi: elearningPlatformABI,
-    functionName: "hasCertificate",
-    args: [address || "0x0", BigInt(courseId || "0")],
-    query: {
-      enabled: !!courseId && !!address && isConnected,
-    },
-  }) as { data?: boolean; refetch: () => void };
+  const { data: hasCertificate, refetch: refetchCertificate } = useReadContract(
+    {
+      address: elearningPlatformAddress,
+      abi: elearningPlatformABI,
+      functionName: "hasCertificate",
+      args: [address || "0x0", BigInt(courseId || "0")],
+      query: {
+        enabled: !!courseId && !!address && isConnected,
+      },
+    }
+  ) as { data?: boolean; refetch: () => void };
 
   useEffect(() => {
     if (cid) {
@@ -413,7 +415,10 @@ const CourseViewer: React.FC = () => {
                             lessonIndex
                           )}
                           onToggle={() =>
-                            handleToggleLessonComplete(sectionIndex, lessonIndex)
+                            handleToggleLessonComplete(
+                              sectionIndex,
+                              lessonIndex
+                            )
                           }
                         />
                       </div>
@@ -431,10 +436,10 @@ const CourseViewer: React.FC = () => {
                                 lesson.videoUrl?.startsWith("http")
                                   ? lesson.videoUrl
                                   : lesson.fileCid
-                                  ? `${IPFS_GATEWAY}${lesson.fileCid}`
-                                  : lesson.videoUrl
-                                  ? `${IPFS_GATEWAY}${lesson.videoUrl}`
-                                  : undefined
+                                    ? `${IPFS_GATEWAY}${lesson.fileCid}`
+                                    : lesson.videoUrl
+                                      ? `${IPFS_GATEWAY}${lesson.videoUrl}`
+                                      : undefined
                               }
                             >
                               Your browser does not support video.
@@ -445,8 +450,8 @@ const CourseViewer: React.FC = () => {
                                 lesson.fileCid
                                   ? `${IPFS_GATEWAY}${lesson.fileCid}`
                                   : lesson.videoUrl
-                                  ? `${IPFS_GATEWAY}${lesson.videoUrl}`
-                                  : undefined
+                                    ? `${IPFS_GATEWAY}${lesson.videoUrl}`
+                                    : undefined
                               }
                               target="_blank"
                               rel="noopener noreferrer"

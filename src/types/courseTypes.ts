@@ -24,6 +24,8 @@ export interface CourseLesson {
   title: string;
   content?: string;
   type?: "text" | "video";
+  fileCid?: string;  // IPFS CID for video content
+  fileUrl?: string; // IPFS gateway URL for video
 }
 
 export interface CourseSection {
