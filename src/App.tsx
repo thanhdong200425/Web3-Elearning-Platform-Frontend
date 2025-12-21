@@ -6,8 +6,6 @@ import CourseLearn from "./screens/CourseLearn";
 import MyCourses from "./screens/MyCourses";
 import CourseViewer from "./components/course/CourseViewer";
 import Home from "./screens/Home";
-import AITutor from "./screens/AITutor";
-import AIResult from "./screens/AIResult";
 import StudentProfile from "./screens/StudentProfile";
 import AddCourse from "./screens/AddCourse";
 import EditCourse from "./screens/EditCourse";
@@ -33,8 +31,6 @@ function App() {
         <Route path="/my-courses" element={<MyCourses />} />
         <Route element={<Home />} path="/" />
         <Route element={<AddCourse />} path="/add-course" />
-        <Route element={<AITutor />} path="/ai-tutor" />
-        <Route element={<AIResult />} path="/ai-result" />
         <Route element={<StudentProfile />} path="/profile" />
         <Route element={<Certificate />} path="/certificate/:courseId" />
         <Route element={<Certificate />} path="/certificate/:id" />

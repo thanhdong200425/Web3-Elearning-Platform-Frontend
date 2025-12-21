@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { BookOpen, Plus, Brain, User } from "lucide-react";
+import { BookOpen, Plus, User } from "lucide-react";
 import { useAccount } from "wagmi";
 import ConnectWalletButton from "../buttons/ConnectWalletButton";
 
@@ -77,16 +77,6 @@ const Header: React.FC = () => {
               >
                 <Plus className="w-4 h-4" />
                 <span className="text-sm font-normal">Create Course</span>
-              </Link>
-              <Link
-                className={`h-9 px-3 rounded-lg flex items-center gap-2 ${location.pathname === "/ai-tutor"
-                  ? "bg-[#030213] text-white"
-                  : "text-neutral-950 hover:bg-gray-50"
-                  }`}
-                to="/ai-tutor"
-              >
-                <Brain className="w-4 h-4" />
-                <span className="text-sm font-normal">AI Tutor</span>
               </Link>
               <Link
                 className="h-9 px-3 rounded-lg flex items-center gap-2 text-neutral-950 hover:bg-gray-50"

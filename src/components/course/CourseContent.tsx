@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import { UseFormSetValue, UseFormWatch } from "react-hook-form";
 import { CourseFormData } from "../../schemas/courseForm";
 import { Button } from "@heroui/button";
 import { Select, SelectItem } from "@heroui/select";
 import FileUpload from "../forms/FileUpload";
+import { generateCourseContent } from "../../services/aiService";
+import { addToast } from "@heroui/toast";
 
 interface CourseContentProps {
   setValue: UseFormSetValue<CourseFormData>;
@@ -26,6 +28,7 @@ interface Lesson {
 
 const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
   const sections = watch("sections") || [];
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const addSection = () => {
     const newSection: Section = {
@@ -134,6 +137,70 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
         : section
     );
     setValue("sections", updatedSections);
+  };
+
+  const handleGenerateContent = async () => {
+    try {
+      setIsGenerating(true);
+
+      // Get title and description from the form
+      const title = watch("title");
+      const description =
+        watch("shortDescription") || watch("detailedDescription");
+
+      if (!title || title.trim() === "") {
+        addToast({
+          title: "Title Required",
+          description: "Please enter a course title before generating content",
+          color: "danger",
+        });
+        return;
+      }
+
+      addToast({
+        title: "Generating Content",
+        description: "AI is creating your course structure...",
+        color: "default",
+      });
+
+      // Generate content using AI
+      const topic = description ? `${title}: ${description}` : title;
+      const generatedContent = await generateCourseContent({ topic });
+
+      // Transform generated content to match form structure
+      const formattedSections: Section[] = (
+        generatedContent.sections || []
+      ).map((section, sectionIndex) => ({
+        id: `section-${Date.now()}-${sectionIndex}`,
+        title: section.title,
+        lessons: (section.lessons || []).map((lesson, lessonIndex) => ({
+          id: `lesson-${Date.now()}-${sectionIndex}-${lessonIndex}`,
+          title: lesson.title,
+          content: lesson.content || "",
+          contentType: "text" as const, // Only text for now as per requirements
+          file: undefined,
+        })),
+      }));
+
+      // Set the generated sections
+      setValue("sections", formattedSections);
+
+      addToast({
+        title: "Content Generated",
+        description: `Successfully created ${formattedSections.length} sections with lessons`,
+        color: "success",
+      });
+    } catch (error) {
+      console.error("Error generating content:", error);
+      addToast({
+        title: "Generation Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to generate content",
+        color: "danger",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -431,6 +498,35 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
           </div>
         )}
       </div>
+
+      {/* Floating AI Generate Button */}
+      <Button
+        isIconOnly
+        onPress={handleGenerateContent}
+        isLoading={isGenerating}
+        className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-50"
+        title="Generate Content with AI"
+      >
+        {!isGenerating && (
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z"
+              fill="currentColor"
+            />
+            <path
+              d="M19 3L19.5 5.5L22 6L19.5 6.5L19 9L18.5 6.5L16 6L18.5 5.5L19 3Z"
+              fill="currentColor"
+              opacity="0.8"
+            />
+          </svg>
+        )}
+      </Button>
     </div>
   );
 };
