@@ -6,6 +6,7 @@ import { addToast } from "@heroui/toast";
 // Constants
 const SIWE_SESSION_KEY = 'siwe_session';
 const SESSION_EXPIRY_HOURS = 24;
+const SKIP_STATE_KEY = 'auth_skip_state';
 
 // Types
 interface SiweSession {
@@ -24,6 +25,8 @@ interface AuthContextType {
     signOut: () => void;
     showSignInModal: boolean;
     setShowSignInModal: (show: boolean) => void;
+    hasSkipped: boolean;
+    setHasSkipped: (skipped: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,6 +60,18 @@ const clearSession = (): void => {
     localStorage.removeItem(SIWE_SESSION_KEY);
 };
 
+const getSkipState = (): boolean => {
+    return localStorage.getItem(SKIP_STATE_KEY) === 'true';
+};
+
+const setSkipState = (skipped: boolean): void => {
+    if (skipped) {
+        localStorage.setItem(SKIP_STATE_KEY, 'true');
+    } else {
+        localStorage.removeItem(SKIP_STATE_KEY);
+    }
+};
+
 // Generate nonce for SIWE message
 const generateNonce = (): string => {
     const array = new Uint8Array(16);
@@ -77,6 +92,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const [session, setSession] = useState<SiweSession | null>(null);
     const [isAuthenticating, setIsAuthenticating] = useState(false);
     const [showSignInModal, setShowSignInModal] = useState(false);
+    const [hasSkipped, setHasSkippedState] = useState<boolean>(() => getSkipState());
+    const [hasCheckedStoredSession, setHasCheckedStoredSession] = useState(false);
+
+    // Wrapper to sync with localStorage
+    const setHasSkipped = useCallback((skipped: boolean) => {
+        setSkipState(skipped);
+        setHasSkippedState(skipped);
+    }, []);
 
     // Check for existing session on mount and when address changes
     useEffect(() => {
@@ -86,17 +109,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Verify the session matches current wallet
             if (storedSession.address.toLowerCase() === address.toLowerCase()) {
                 setSession(storedSession);
+                setHasSkipped(false); // Clear skip state if authenticated
             } else {
                 // Address mismatch, clear session
                 clearSession();
                 setSession(null);
             }
         } else if (!isConnected) {
-            // Wallet disconnected, clear session
+            // Wallet disconnected, clear session and skip state
             clearSession();
             setSession(null);
+            setHasSkipped(false);
         }
-    }, [address, isConnected]);
+
+        // Mark that we've checked for stored session
+        setHasCheckedStoredSession(true);
+    }, [address, isConnected, setHasSkipped]);
 
     const [preventSignInPrompt, setPreventSignInPrompt] = useState(false);
 
@@ -104,10 +132,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     useEffect(() => {
         if (preventSignInPrompt) return;
 
+        // Only show modal after we've checked for stored session
+        if (!hasCheckedStoredSession) return;
+
         if (isConnected && address && !session && !isAuthenticating) {
             setShowSignInModal(true);
         }
-    }, [isConnected, address, session, isAuthenticating, preventSignInPrompt]);
+    }, [isConnected, address, session, isAuthenticating, preventSignInPrompt, hasCheckedStoredSession]);
 
     // Reset prevention flag when disconnected
     useEffect(() => {
@@ -185,6 +216,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             storeSession(newSession);
             setSession(newSession);
             setShowSignInModal(false);
+            setHasSkipped(false); // Clear skip state on successful sign-in
 
             console.log('✅ SIWE authentication successful');
         } catch (error) {
@@ -199,9 +231,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setPreventSignInPrompt(true);
         clearSession();
         setSession(null);
+        setHasSkipped(false);
         disconnect();
         console.log('👋 Signed out successfully');
-    }, [disconnect]);
+    }, [disconnect, setHasSkipped]);
 
     const isAuthenticated = !!session && !!isConnected &&
         session.address.toLowerCase() === address?.toLowerCase();
@@ -214,6 +247,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         signOut,
         showSignInModal,
         setShowSignInModal,
+        hasSkipped,
+        setHasSkipped,
     };
 
     return (

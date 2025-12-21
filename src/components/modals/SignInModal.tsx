@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@heroui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield, X } from 'lucide-react';
+import { addToast } from '@heroui/toast';
 
 interface SignInModalProps {
     isOpen: boolean;
@@ -9,7 +10,7 @@ interface SignInModalProps {
 }
 
 const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
-    const { signIn, isAuthenticating } = useAuth();
+    const { signIn, isAuthenticating, setHasSkipped } = useAuth();
 
     const handleSignIn = async () => {
         try {
@@ -20,7 +21,13 @@ const SignInModal: React.FC<SignInModalProps> = ({ isOpen, onClose }) => {
     };
 
     const handleSkip = () => {
+        setHasSkipped(true);
         onClose();
+        addToast({
+            title: 'Browse Only Mode',
+            description: 'You can browse courses only. Sign in to purchase, view, or create courses.',
+            color: 'warning',
+        });
     };
 
     if (!isOpen) return null;

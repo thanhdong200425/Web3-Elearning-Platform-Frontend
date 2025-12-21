@@ -22,6 +22,7 @@ import { parseEther, formatEther } from "viem";
 import { addToast } from "@heroui/toast";
 import { createCourse, updateCourseIPFS } from "@/services/courseService";
 import { validateCourseForDeployment } from "@/utils/courseValidation";
+import { useAuth } from "@/contexts/AuthContext";
 
 import {
   elearningPlatformABI,
@@ -144,6 +145,7 @@ const AddCourse: React.FC<AddCourseProps> = ({
   } = useWriteContract();
 
   const { isConnected } = useAccount();
+  const { isAuthenticated, setShowSignInModal } = useAuth();
 
   const defaultLabelClassNames = useMemo(() => {
     return "text-sm font-medium text-neutral-950";
@@ -201,6 +203,19 @@ const AddCourse: React.FC<AddCourseProps> = ({
         title: "Wallet Not Connected",
         description: "Please connect your wallet before deploying the course.",
         color: "danger",
+        timeout: 3000,
+        shouldShowTimeoutProgress: true,
+      });
+      return;
+    }
+
+    // Check authentication
+    if (!isAuthenticated) {
+      setShowSignInModal(true);
+      addToast({
+        title: "Authentication Required",
+        description: "Please sign in to create or edit courses.",
+        color: "warning",
         timeout: 3000,
         shouldShowTimeoutProgress: true,
       });

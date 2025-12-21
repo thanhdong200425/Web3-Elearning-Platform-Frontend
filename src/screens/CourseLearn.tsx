@@ -29,6 +29,7 @@ import {
   CertificateViewer,
 } from "@/components/course/ClaimCertificate";
 import { getPinataCredentials } from "@/services/ipfs";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ExtendedLesson extends CourseLesson {
   sectionIndex: number;
@@ -39,6 +40,7 @@ const CourseLearn: React.FC = () => {
   const navigate = useNavigate();
   const { courseId: id } = useParams<{ courseId: string }>();
   const { isConnected } = useAccount();
+  const { isAuthenticated, setShowSignInModal } = useAuth();
 
   // Parse course ID from URL
   const courseId = id ? BigInt(id) : undefined;
@@ -204,6 +206,18 @@ const CourseLearn: React.FC = () => {
       return;
     }
 
+    // Check authentication - if not authenticated, show sign-in modal
+    if (!isAuthenticated) {
+      setShowSignInModal(true);
+      addToast({
+        title: "Authentication Required",
+        description: "Please sign in to view course content.",
+        color: "warning",
+      });
+      navigate(`/course/${id}`);
+      return;
+    }
+
     // If not purchased and not instructor, redirect to course detail
     if (!hasPurchased && !isInstructor && courseData) {
       navigate(`/course/${id}`);
@@ -213,11 +227,13 @@ const CourseLearn: React.FC = () => {
     isLoadingContent,
     isCheckingPurchase,
     isConnected,
+    isAuthenticated,
     hasPurchased,
     isInstructor,
     navigate,
     id,
     courseData,
+    setShowSignInModal,
   ]);
 
   // Loading state
