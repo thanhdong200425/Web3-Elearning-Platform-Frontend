@@ -24,7 +24,11 @@ import {
   isLessonCompleted,
   isCourseComplete,
 } from "@/utils/progressManager";
-import { ClaimCertificate, CertificateViewer } from "@/components/course/ClaimCertificate";
+import {
+  ClaimCertificate,
+  CertificateViewer,
+} from "@/components/course/ClaimCertificate";
+import { getPinataCredentials } from "@/services/ipfs";
 
 interface ExtendedLesson extends CourseLesson {
   sectionIndex: number;
@@ -73,18 +77,27 @@ const CourseLearn: React.FC = () => {
 
   const [expandedSections, setExpandedSections] = useState<number[]>([0]);
   const [currentLessonIndex, setCurrentLessonIndex] = useState<number>(0);
-  const [courseProgress, setCourseProgress] = useState(() =>
-    loadCourseProgress(id || '') || { completedLessons: 0, percentageComplete: 0, lessons: new Map() }
+  const [courseProgress, setCourseProgress] = useState(
+    () =>
+      loadCourseProgress(id || "") || {
+        completedLessons: 0,
+        percentageComplete: 0,
+        lessons: new Map(),
+      }
   );
+  const { ipfsGateway: publicIpfsGateway } = getPinataCredentials();
+
   const [certificateImageCID, setCertificateImageCID] = useState<string | null>(
     localStorage.getItem(`cert_image_${id}`) || null
   );
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isLoadingVideo, setIsLoadingVideo] = useState<boolean>(false);
 
   const currentLesson = allLessons[currentLessonIndex];
   const { address } = useAccount();
 
   // Check if course is complete
-  const isComplete = isCourseComplete(id || '');
+  const isComplete = isCourseComplete(id || "");
 
   // Update progress when course content changes
   useEffect(() => {
@@ -95,6 +108,21 @@ const CourseLearn: React.FC = () => {
       }
     }
   }, [id]);
+
+  // Fetch video URL when current lesson changes to a video type
+  useEffect(() => {
+    if (currentLesson?.type === "video" && currentLesson.fileCid) {
+      setIsLoadingVideo(true);
+      setVideoUrl(null);
+
+      const url = `https://${publicIpfsGateway}/ipfs/${currentLesson.fileCid}`;
+      setVideoUrl(url);
+      setIsLoadingVideo(false);
+    } else {
+      setVideoUrl(null);
+      setIsLoadingVideo(false);
+    }
+  }, [currentLesson]);
 
   const handleExitCourse = () => {
     navigate(`/course/${id}`);
@@ -125,9 +153,9 @@ const CourseLearn: React.FC = () => {
     setCourseProgress(updatedProgress);
 
     addToast({
-      title: 'Lesson Completed!',
+      title: "Lesson Completed!",
       description: `Progress: ${updatedProgress.completedLessons}/${totalLessons} lessons`,
-      color: 'success',
+      color: "success",
       timeout: 3000,
     });
 
@@ -180,14 +208,26 @@ const CourseLearn: React.FC = () => {
     if (!hasPurchased && !isInstructor && courseData) {
       navigate(`/course/${id}`);
     }
-  }, [isLoading, isLoadingContent, isCheckingPurchase, isConnected, hasPurchased, isInstructor, navigate, id, courseData]);
+  }, [
+    isLoading,
+    isLoadingContent,
+    isCheckingPurchase,
+    isConnected,
+    hasPurchased,
+    isInstructor,
+    navigate,
+    id,
+    courseData,
+  ]);
 
   // Loading state
   if (isLoading || isLoadingContent || isCheckingPurchase) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-        <p className="text-gray-600 text-lg">Loading course from blockchain & IPFS...</p>
+        <p className="text-gray-600 text-lg">
+          Loading course from blockchain & IPFS...
+        </p>
       </div>
     );
   }
@@ -199,9 +239,14 @@ const CourseLearn: React.FC = () => {
         <Lock className="w-12 h-12 text-yellow-500 mb-4" />
         <p className="text-gray-600 text-lg mb-2">Course Access Restricted</p>
         <p className="text-gray-500 text-sm mb-4">
-          {!isConnected ? "Please connect your wallet to access this course" : "Please purchase this course to access the content"}
+          {!isConnected
+            ? "Please connect your wallet to access this course"
+            : "Please purchase this course to access the content"}
         </p>
-        <Button onPress={() => navigate(`/course/${id}`)} className="bg-blue-600 text-white">
+        <Button
+          onPress={() => navigate(`/course/${id}`)}
+          className="bg-blue-600 text-white"
+        >
           {!isConnected ? "Back to Course" : "Purchase Course"}
         </Button>
       </div>
@@ -213,8 +258,13 @@ const CourseLearn: React.FC = () => {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <p className="text-gray-600 text-lg mb-4">Course not found or has no content</p>
-        <Button onPress={() => navigate(`/course/${id}`)} className="bg-blue-600 text-white">
+        <p className="text-gray-600 text-lg mb-4">
+          Course not found or has no content
+        </p>
+        <Button
+          onPress={() => navigate(`/course/${id}`)}
+          className="bg-blue-600 text-white"
+        >
           Back to Course
         </Button>
       </div>
@@ -237,7 +287,8 @@ const CourseLearn: React.FC = () => {
               {courseMetadata?.title || courseData.title}
             </h1>
             <p className="text-[#6a7282] text-sm">
-              {courseProgress.completedLessons} of {totalLessons} lessons completed ({courseProgress.percentageComplete}%)
+              {courseProgress.completedLessons} of {totalLessons} lessons
+              completed ({courseProgress.percentageComplete}%)
             </p>
           </div>
         </div>
@@ -269,7 +320,8 @@ const CourseLearn: React.FC = () => {
               let lessonGlobalIndex = 0;
               // Calculate the starting global index for this section
               for (let i = 0; i < sectionIndex; i++) {
-                lessonGlobalIndex += courseContent.sections?.[i]?.lessons?.length || 0;
+                lessonGlobalIndex +=
+                  courseContent.sections?.[i]?.lessons?.length || 0;
               }
 
               return (
@@ -284,7 +336,9 @@ const CourseLearn: React.FC = () => {
                   >
                     <ChevronRight
                       className={`w-4 h-4 text-gray-700 transition-transform ${
-                        expandedSections.includes(sectionIndex) ? "rotate-90" : ""
+                        expandedSections.includes(sectionIndex)
+                          ? "rotate-90"
+                          : ""
                       }`}
                     />
                     <span className="text-[#0a0a0a] text-sm flex-1 text-left">
@@ -296,14 +350,23 @@ const CourseLearn: React.FC = () => {
                   {expandedSections.includes(sectionIndex) && (
                     <div className="border-t border-gray-200">
                       {section.lessons?.map((lesson, lessonIndex) => {
-                        const currentGlobalIndex = lessonGlobalIndex + lessonIndex;
-                        const isCompleted = isLessonCompleted(id || '', sectionIndex, lessonIndex);
+                        const currentGlobalIndex =
+                          lessonGlobalIndex + lessonIndex;
+                        const isCompleted = isLessonCompleted(
+                          id || "",
+                          sectionIndex,
+                          lessonIndex
+                        );
                         return (
                           <button
                             key={lessonIndex}
-                            onClick={() => handleLessonClick(currentGlobalIndex)}
+                            onClick={() =>
+                              handleLessonClick(currentGlobalIndex)
+                            }
                             className={`w-full px-4 py-3 pl-12 flex flex-col gap-1 hover:bg-gray-50 transition-colors border-b border-gray-200 last:border-b-0 ${
-                              currentLessonIndex === currentGlobalIndex ? "bg-[#eff6ff]" : ""
+                              currentLessonIndex === currentGlobalIndex
+                                ? "bg-[#eff6ff]"
+                                : ""
                             }`}
                           >
                             <div className="flex items-center gap-2">
@@ -354,19 +417,42 @@ const CourseLearn: React.FC = () => {
               {/* Lesson Content Based on Type */}
               {currentLesson?.type === "video" && (
                 <div className="bg-[#101828] rounded-lg h-[540px] flex items-center justify-center mb-8">
-                  <div className="text-center">
-                    <Play className="w-16 h-16 text-white mx-auto mb-4" />
-                    <p className="text-[#99a1af] text-base">
-                      Video content will be loaded from IPFS
-                    </p>
-                  </div>
+                  {isLoadingVideo ? (
+                    <div className="text-center">
+                      <Loader2 className="w-16 h-16 text-white mx-auto mb-4 animate-spin" />
+                      <p className="text-[#99a1af] text-base">
+                        Loading video from IPFS...
+                      </p>
+                    </div>
+                  ) : videoUrl ? (
+                    <video
+                      key={videoUrl}
+                      controls
+                      className="w-full h-full rounded-lg"
+                      controlsList="nodownload"
+                    >
+                      <source src={videoUrl} type="video/mp4" />
+                      <source src={videoUrl} type="video/webm" />
+                      <source src={videoUrl} type="video/ogg" />
+                      Your browser does not support the video tag.
+                    </video>
+                  ) : (
+                    <div className="text-center">
+                      <Play className="w-16 h-16 text-white mx-auto mb-4" />
+                      <p className="text-[#99a1af] text-base">
+                        Video content will be loaded from IPFS
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {currentLesson?.type === "text" && (
                 <Card className="bg-white border border-gray-200 rounded-2xl p-8 mb-8">
                   <p className="text-[#364153] text-base leading-relaxed whitespace-pre-wrap">
-                    {currentLesson.content ? String(currentLesson.content) : "Lesson content will be displayed here."}
+                    {currentLesson.content
+                      ? String(currentLesson.content)
+                      : "Lesson content will be displayed here."}
                   </p>
                 </Card>
               )}
@@ -374,7 +460,11 @@ const CourseLearn: React.FC = () => {
               {/* Mark as Complete Button */}
               {currentLesson && (
                 <div className="flex justify-center">
-                  {isLessonCompleted(id || '', currentLesson.sectionIndex, currentLesson.lessonIndex) ? (
+                  {isLessonCompleted(
+                    id || "",
+                    currentLesson.sectionIndex,
+                    currentLesson.lessonIndex
+                  ) ? (
                     <Button
                       disabled
                       className="bg-green-600 text-white rounded-lg h-10 px-6 text-sm flex items-center gap-2 opacity-75 cursor-not-allowed"
@@ -397,10 +487,7 @@ const CourseLearn: React.FC = () => {
               {/* Certificate Section - Shows when course is complete */}
               {isComplete && address && id && (
                 <div className="mt-8">
-                  <CertificateViewer
-                    courseId={id}
-                    studentAddress={address}
-                  />
+                  <CertificateViewer courseId={id} studentAddress={address} />
                   {!certificateImageCID && (
                     <ClaimCertificate
                       courseId={id}
@@ -448,4 +535,3 @@ const CourseLearn: React.FC = () => {
 };
 
 export default CourseLearn;
-

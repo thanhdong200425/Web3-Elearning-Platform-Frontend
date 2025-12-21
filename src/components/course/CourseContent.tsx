@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { UseFormSetValue, UseFormWatch } from "react-hook-form";
 import { CourseFormData } from "../../schemas/courseForm";
 import { Button } from "@heroui/button";
-import FileUpload from "../forms/FileUpload"; // ⬅️ thêm import
+import { Select, SelectItem } from "@heroui/select";
+import FileUpload from "../forms/FileUpload";
 
 interface CourseContentProps {
   setValue: UseFormSetValue<CourseFormData>;
@@ -19,12 +20,12 @@ interface Lesson {
   id: string;
   title: string;
   content?: string;
+  contentType: "text" | "video";
   file?: File;
 }
 
 const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
   const sections = watch("sections") || [];
-  const [isAddingSection, setIsAddingSection] = useState(false);
 
   const addSection = () => {
     const newSection: Section = {
@@ -35,7 +36,6 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
 
     const updatedSections = [...sections, newSection];
     setValue("sections", updatedSections);
-    setIsAddingSection(true);
   };
 
   const updateSectionTitle = (sectionId: string, title: string) => {
@@ -56,6 +56,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
     const newLesson: Lesson = {
       id: `lesson-${Date.now()}`,
       title: "",
+      contentType: "text",
     };
 
     const updatedSections = sections.map((section) =>
@@ -96,6 +97,24 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
             ...section,
             lessons: section.lessons?.map((lesson) =>
               lesson.id === lessonId ? { ...lesson, content } : lesson
+            ),
+          }
+        : section
+    );
+    setValue("sections", updatedSections);
+  };
+
+  const updateLessonContentType = (
+    sectionId: string,
+    lessonId: string,
+    contentType: "text" | "video"
+  ) => {
+    const updatedSections = sections.map((section) =>
+      section.id === sectionId
+        ? {
+            ...section,
+            lessons: section.lessons?.map((lesson) =>
+              lesson.id === lessonId ? { ...lesson, contentType } : lesson
             ),
           }
         : section
@@ -204,7 +223,6 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                 {section.lessons && section.lessons.length > 0 && (
                   <div className="ml-4 space-y-3">
                     {section.lessons.map((lesson, lessonIndex) => {
-                      // lấy ipfs url/cid nếu đã upload xong (được FileUpload set vào form)
                       const ipfsCid = (lesson as any)?.fileIpfsCid ?? undefined;
                       const ipfsUrl = (lesson as any)?.fileUrl ?? undefined;
 
@@ -213,8 +231,8 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                           key={lesson.id}
                           className="bg-white border border-gray-200 rounded-lg p-3"
                         >
-                          {/* Hàng tiêu đề + delete */}
-                          <div className="flex items-center justify-between gap-3">
+                          {/* Header: lesson number, title, and delete */}
+                          <div className="flex items-center justify-between gap-3 mb-3">
                             <div className="flex items-center gap-3 flex-1">
                               <span className="text-xs text-gray-500">
                                 {sectionIndex + 1}.{lessonIndex + 1}
@@ -245,12 +263,40 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                             </Button>
                           </div>
 
-                          {/* Nội dung & Upload asset */}
-                          <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {/* Text content (optional) */}
+                          {/* Content Type Selector */}
+                          <div className="mb-3">
+                            <Select
+                              label="Content Type"
+                              placeholder="Select content type"
+                              selectedKeys={[lesson.contentType]}
+                              onSelectionChange={(keys) => {
+                                const selected = Array.from(keys)[0] as
+                                  | "text"
+                                  | "video";
+                                updateLessonContentType(
+                                  section.id,
+                                  lesson.id,
+                                  selected
+                                );
+                              }}
+                              classNames={{
+                                trigger:
+                                  "bg-gray-100 border-0 rounded-lg px-3 py-2 h-10",
+                                label: "text-xs font-medium text-neutral-950",
+                              }}
+                              labelPlacement="outside"
+                              size="sm"
+                            >
+                              <SelectItem key="text">Text</SelectItem>
+                              <SelectItem key="video">Video</SelectItem>
+                            </Select>
+                          </div>
+
+                          {/* Content based on type */}
+                          {lesson.contentType === "text" && (
                             <div className="flex flex-col">
                               <label className="text-xs font-medium text-neutral-950 mb-1">
-                                Lesson Content (optional)
+                                Lesson Content
                               </label>
                               <textarea
                                 value={lesson.content ?? ""}
@@ -265,44 +311,72 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                                 className="min-h-[96px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30"
                               />
                             </div>
+                          )}
 
-                            {/* Upload asset -> IPFS */}
-                            <div className="flex flex-col">
-                              <FileUpload
-                                name={`sections.${sectionIndex}.lessons.${lessonIndex}.file`}
-                                setValue={setValue as any}
-                                accept="video/*,application/pdf,application/zip"
-                                isRequired={false}
-                                className="w-full"
-                              />
+                          {lesson.contentType === "video" && (
+                            <div className="flex flex-col gap-3">
+                              {/* Optional text description for video */}
+                              <div className="flex flex-col">
+                                <label className="text-xs font-medium text-neutral-950 mb-1">
+                                  Video Description (optional)
+                                </label>
+                                <textarea
+                                  value={lesson.content ?? ""}
+                                  onChange={(e) =>
+                                    updateLessonContent(
+                                      section.id,
+                                      lesson.id,
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="Short description about this video…"
+                                  className="min-h-[64px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30"
+                                />
+                              </div>
 
-                              {/* Chip trạng thái IPFS (nếu có) */}
-                              {(ipfsCid || ipfsUrl) && (
-                                <div className="mt-2 text-xs text-green-700">
-                                  Uploaded to IPFS:&nbsp;
-                                  {ipfsCid && (
-                                    <span className="font-medium break-all">
-                                      CID: {ipfsCid}
-                                    </span>
-                                  )}
-                                  {ipfsUrl && (
-                                    <>
-                                      {" "}
-                                      —{" "}
-                                      <a
-                                        href={ipfsUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="underline"
-                                      >
-                                        Open
-                                      </a>
-                                    </>
-                                  )}
-                                </div>
-                              )}
+                              {/* Video Upload */}
+                              <div className="flex flex-col">
+                                <label className="text-xs font-medium text-neutral-950 mb-1">
+                                  Upload Video
+                                </label>
+                                <FileUpload
+                                  name={`sections.${sectionIndex}.lessons.${lessonIndex}.file`}
+                                  setValue={setValue as any}
+                                  accept="video/*"
+                                  isRequired={false}
+                                  className="w-full"
+                                  label=""
+                                  placeholder="Upload lesson video"
+                                />
+
+                                {/* IPFS Upload Status */}
+                                {(ipfsCid || ipfsUrl) && (
+                                  <div className="mt-2 text-xs text-green-700">
+                                    Uploaded to IPFS:&nbsp;
+                                    {ipfsCid && (
+                                      <span className="font-medium break-all">
+                                        CID: {ipfsCid}
+                                      </span>
+                                    )}
+                                    {ipfsUrl && (
+                                      <>
+                                        {" "}
+                                        —{" "}
+                                        <a
+                                          href={ipfsUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="underline"
+                                        >
+                                          Open
+                                        </a>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       );
                     })}

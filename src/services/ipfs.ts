@@ -2,7 +2,7 @@
 const PINATA_API_URL = "https://api.pinata.cloud";
 
 // Get Pinata API credentials
-const getPinataCredentials = () => {
+export const getPinataCredentials = () => {
   const apiKey = import.meta.env.VITE_PINATA_API_KEY || "";
   const apiSecret = import.meta.env.VITE_PINATA_API_SECRET || "";
   const ipfsGateway = import.meta.env.VITE_GATEWAY_URL || "";
