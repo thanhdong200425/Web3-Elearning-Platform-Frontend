@@ -143,7 +143,6 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <PartnerLogosSection />
 
       {courses.length > 0 ? (
         <>

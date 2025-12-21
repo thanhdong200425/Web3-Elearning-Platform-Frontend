@@ -22,11 +22,13 @@ import CourseCurriculumTab from "@/components/course/CourseCurriculumTab";
 import CourseInstructorTab from "@/components/course/CourseInstructorTab";
 import CourseSidebar from "@/components/course/CourseSidebar";
 import PurchaseConfirmationModal from "@/components/modals/PurchaseConfirmationModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 const CourseDetail: React.FC = () => {
   const navigate = useNavigate();
   const { courseId: id } = useParams<{ courseId: string }>();
   const { isConnected } = useAccount();
+  const { isAuthenticated, setShowSignInModal } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
@@ -71,6 +73,11 @@ const CourseDetail: React.FC = () => {
         title: "Please connect your wallet first",
         color: "danger",
       });
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setShowSignInModal(true);
       return;
     }
 

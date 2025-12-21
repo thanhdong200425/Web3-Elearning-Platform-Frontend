@@ -11,6 +11,7 @@ import {
 import { formatEther } from "viem";
 import Header from "@/components/layout/Header";
 import { CertificateViewer } from "@/components/course/ClaimCertificate";
+import { useAuth } from "@/contexts/AuthContext";
 
 const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 
@@ -35,6 +36,7 @@ interface Course {
 const StudentProfile: React.FC = () => {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
+  const { isAuthenticated, setShowSignInModal } = useAuth();
 
   const [purchasedCourses, setPurchasedCourses] = useState<Course[]>([]);
   const [createdCourses, setCreatedCourses] = useState<Course[]>([]);
@@ -222,6 +224,18 @@ const StudentProfile: React.FC = () => {
     }
   }, [purchasedCourses, loadingPurchased]);
 
+  // Check authentication for profile access
+  useEffect(() => {
+    if (isConnected && address && !isAuthenticated) {
+      setShowSignInModal(true);
+      addToast({
+        title: "Authentication Required",
+        description: "Please sign in to access your profile.",
+        color: "warning",
+      });
+    }
+  }, [isConnected, address, isAuthenticated, setShowSignInModal]);
+
   if (!isConnected || !address) {
     return (
       <>
@@ -235,6 +249,28 @@ const StudentProfile: React.FC = () => {
               <CardBody>
                 <p className="text-gray-600">
                   Please connect your wallet to view your profile.
+                </p>
+              </CardBody>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 p-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">
+              🎓 Student Profile
+            </h1>
+            <Card className="mb-8 shadow-md border border-gray-200">
+              <CardBody>
+                <p className="text-gray-600">
+                  Please sign in to view your profile and access all features.
                 </p>
               </CardBody>
             </Card>
