@@ -14,6 +14,7 @@ export interface FileUploadProps {
   placeholder?: string;
   uploadToIPFS?: boolean; // Enable immediate IPFS upload
   onUploadComplete?: (cid: string, url: string) => void;
+  isDisabled?: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -28,6 +29,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   placeholder = "Upload cover image",
   uploadToIPFS = false,
   onUploadComplete,
+  isDisabled = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string>("No file chosen");
@@ -112,7 +114,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   );
 
   const handleRemove = () => {
-    if (isUploading) return; // Prevent removal during upload
+    if (isUploading || isDisabled) return; // Prevent removal during upload or if disabled
 
     setLocalPreview(null);
     setFileName("No file chosen");
@@ -130,21 +132,25 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const handleFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    if (isDisabled) return;
     const file = event.target.files?.[0];
     if (file) await doUpload(file);
   };
 
   const handleBrowseClick = () => {
+    if (isDisabled) return;
     fileInputRef.current?.click();
   };
 
   // Drag & drop
   const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (isDisabled) return;
     e.preventDefault();
     setDragOver(true);
   };
   const onDragLeave = () => setDragOver(false);
   const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    if (isDisabled) return;
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
@@ -243,7 +249,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
             <button
               type="button"
               onClick={handleBrowseClick}
-              disabled={isUploading}
+              disabled={isUploading || isDisabled}
               className="bg-white hover:bg-gray-50 text-gray-900 rounded-lg px-4 py-2 text-sm font-medium shadow-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Change
@@ -251,7 +257,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
             <button
               type="button"
               onClick={handleRemove}
-              disabled={isUploading}
+              disabled={isUploading || isDisabled}
               className="bg-white hover:bg-gray-50 text-gray-900 rounded-lg px-4 py-2 text-sm font-medium shadow-lg transition-colors flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg
@@ -289,6 +295,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
               : dragOver
                 ? "border-blue-400"
                 : "border-gray-300",
+            isDisabled ? "opacity-50 cursor-not-allowed" : "",
           ].join(" ")}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
@@ -339,7 +346,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           <button
             type="button"
             onClick={handleBrowseClick}
-            disabled={isUploading}
+            disabled={isUploading || isDisabled}
             className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Browse Files

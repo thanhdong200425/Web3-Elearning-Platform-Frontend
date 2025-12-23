@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { UseFormSetValue, UseFormWatch } from "react-hook-form";
 import { CourseFormData } from "../../schemas/courseForm";
 import { Button } from "@heroui/button";
 import { Select, SelectItem } from "@heroui/select";
 import FileUpload from "../forms/FileUpload";
-import { generateCourseContent } from "../../services/aiService";
+import { generateCourseContent } from "../../services/ollamaService";
 import { addToast } from "@heroui/toast";
+import axios from "axios";
 
 interface CourseContentProps {
   setValue: UseFormSetValue<CourseFormData>;
@@ -29,6 +30,7 @@ interface Lesson {
 const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
   const sections = watch("sections") || [];
   const [isGenerating, setIsGenerating] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const addSection = () => {
     const newSection: Section = {
@@ -140,8 +142,23 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
   };
 
   const handleGenerateContent = async () => {
+    if (isGenerating) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+        addToast({
+          title: "Generation Stopped",
+          description: "AI generation has been cancelled",
+          color: "warning",
+        });
+      }
+      return;
+    }
+
     try {
       setIsGenerating(true);
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
       // Get title and description from the form
       const title = watch("title");
@@ -154,6 +171,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
           description: "Please enter a course title before generating content",
           color: "danger",
         });
+        setIsGenerating(false);
         return;
       }
 
@@ -165,16 +183,37 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
 
       // Generate content using AI
       const topic = description ? `${title}: ${description}` : title;
-      const generatedContent = await generateCourseContent({ topic });
+      const sessionId = Date.now();
+      
+      const generatedContent = await generateCourseContent({ 
+        topic,
+        signal: controller.signal,
+        onStream: (partialContent) => {
+          if (partialContent && partialContent.sections) {
+             const formattedSections: Section[] = partialContent.sections.map((section, sectionIndex) => ({
+                id: `section-${sessionId}-${sectionIndex}`,
+                title: section.title || `Section ${sectionIndex + 1}`,
+                lessons: (section.lessons || []).map((lesson, lessonIndex) => ({
+                  id: `lesson-${sessionId}-${sectionIndex}-${lessonIndex}`,
+                  title: lesson.title || `Lesson ${lessonIndex + 1}`,
+                  content: lesson.content || "",
+                  contentType: "text" as const,
+                  file: undefined,
+                })),
+              }));
+              setValue("sections", formattedSections);
+          }
+        }
+      });
 
       // Transform generated content to match form structure
       const formattedSections: Section[] = (
         generatedContent.sections || []
       ).map((section, sectionIndex) => ({
-        id: `section-${Date.now()}-${sectionIndex}`,
+        id: `section-${sessionId}-${sectionIndex}`,
         title: section.title,
         lessons: (section.lessons || []).map((lesson, lessonIndex) => ({
-          id: `lesson-${Date.now()}-${sectionIndex}-${lessonIndex}`,
+          id: `lesson-${sessionId}-${sectionIndex}-${lessonIndex}`,
           title: lesson.title,
           content: lesson.content || "",
           contentType: "text" as const, // Only text for now as per requirements
@@ -191,6 +230,10 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
         color: "success",
       });
     } catch (error) {
+      if (axios.isCancel(error) || (error as any).name === "AbortError") {
+        console.log("Generation aborted");
+        return;
+      }
       console.error("Error generating content:", error);
       addToast({
         title: "Generation Failed",
@@ -200,6 +243,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
       });
     } finally {
       setIsGenerating(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -223,6 +267,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
           variant="bordered"
           size="md"
           onPress={addSection}
+          isDisabled={isGenerating}
           className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium text-neutral-950 hover:bg-gray-50 flex items-center gap-2"
         >
           <svg
@@ -263,7 +308,8 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                       onChange={(e) =>
                         updateSectionTitle(section.id, e.target.value)
                       }
-                      className="flex-1 bg-transparent border-none outline-none text-sm font-medium text-neutral-950 placeholder-gray-400"
+                      readOnly={isGenerating}
+                      className={`flex-1 bg-transparent border-none outline-none text-sm font-medium text-neutral-950 placeholder-gray-400 ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
                     />
                   </div>
                   <div className="flex items-center gap-2">
@@ -271,6 +317,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                       size="sm"
                       variant="light"
                       onPress={() => addLesson(section.id)}
+                      isDisabled={isGenerating}
                       className="text-xs text-blue-600 hover:text-blue-700"
                     >
                       + Add Lesson
@@ -279,6 +326,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                       size="sm"
                       variant="light"
                       onPress={() => deleteSection(section.id)}
+                      isDisabled={isGenerating}
                       className="text-xs text-red-600 hover:text-red-700"
                     >
                       Delete
@@ -315,7 +363,8 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                                     e.target.value
                                   )
                                 }
-                                className="flex-1 bg-transparent border-none outline-none text-sm text-neutral-950 placeholder-gray-400"
+                                readOnly={isGenerating}
+                                className={`flex-1 bg-transparent border-none outline-none text-sm text-neutral-950 placeholder-gray-400 ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
                               />
                             </div>
                             <Button
@@ -324,6 +373,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                               onPress={() =>
                                 deleteLesson(section.id, lesson.id)
                               }
+                              isDisabled={isGenerating}
                               className="text-xs text-red-600 hover:text-red-700"
                             >
                               Delete
@@ -353,6 +403,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                               }}
                               labelPlacement="outside"
                               size="sm"
+                              isDisabled={isGenerating}
                             >
                               <SelectItem key="text">Text</SelectItem>
                               <SelectItem key="video">Video</SelectItem>
@@ -374,8 +425,9 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                                     e.target.value
                                   )
                                 }
+                                readOnly={isGenerating}
                                 placeholder="Short description, links, notes…"
-                                className="min-h-[96px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30"
+                                className={`min-h-[96px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
                               />
                             </div>
                           )}
@@ -396,8 +448,9 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                                       e.target.value
                                     )
                                   }
+                                  readOnly={isGenerating}
                                   placeholder="Short description about this video…"
-                                  className="min-h-[64px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30"
+                                  className={`min-h-[64px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 ${isGenerating ? "opacity-50 cursor-not-allowed" : ""}`}
                                 />
                               </div>
 
@@ -414,6 +467,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
                                   className="w-full"
                                   label=""
                                   placeholder="Upload lesson video"
+                                  isDisabled={isGenerating}
                                 />
 
                                 {/* IPFS Upload Status */}
@@ -491,6 +545,7 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
               variant="solid"
               size="md"
               onPress={addSection}
+              isDisabled={isGenerating}
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
               Add Your First Section
@@ -503,11 +558,27 @@ const CourseContent: React.FC<CourseContentProps> = ({ setValue, watch }) => {
       <Button
         isIconOnly
         onPress={handleGenerateContent}
-        isLoading={isGenerating}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-50"
-        title="Generate Content with AI"
+        className={`fixed bottom-8 right-8 w-14 h-14 ${
+          isGenerating 
+          ? "bg-red-500 hover:bg-red-600" 
+          : "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+        } text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 z-50`}
+        title={isGenerating ? "Stop Generation" : "Generate Content with AI"}
       >
-        {!isGenerating && (
+        {isGenerating ? (
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M6 6H18V18H6V6Z"
+              fill="currentColor"
+            />
+          </svg>
+        ) : (
           <svg
             width="24"
             height="24"

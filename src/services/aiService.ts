@@ -10,7 +10,6 @@ const ai = new GoogleGenAI({
 const lessonSchema = z.object({
   title: z.string().describe("Title of the lesson"),
   content: z.string().describe("Detailed content of the lesson").optional(),
-  type: z.enum(["text", "video"]).describe("Type of lesson").optional(),
 });
 
 const sectionSchema = z.object({
@@ -48,7 +47,6 @@ export async function generateCourseContent({
     3. Each lesson MUST be a flat object with ONLY these fields:
       - "title" (string): The lesson title
       - "content" (string): Detailed educational content in clear paragraphs
-      - "type" (string): Either "text" or "video"
     4. Do NOT nest lessons inside lessons - keep the structure flat
     5. The content should be comprehensive and educational
 
@@ -60,8 +58,7 @@ export async function generateCourseContent({
           "lessons": [
             {
               "title": "Lesson Title",
-              "content": "Detailed lesson content here...",
-              "type": "text"
+              "content": "Detailed lesson content here..."
             }
           ]
         }

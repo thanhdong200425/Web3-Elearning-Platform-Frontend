@@ -21,8 +21,7 @@ import { addToast } from "@heroui/toast";
 import {
   loadCourseProgress,
   markLessonComplete,
-  isLessonCompleted,
-  isCourseComplete,
+  CourseProgress,
 } from "@/utils/progressManager";
 import {
   ClaimCertificate,
@@ -79,14 +78,17 @@ const CourseLearn: React.FC = () => {
 
   const [expandedSections, setExpandedSections] = useState<number[]>([0]);
   const [currentLessonIndex, setCurrentLessonIndex] = useState<number>(0);
-  const [courseProgress, setCourseProgress] = useState(
-    () =>
-      loadCourseProgress(id || "") || {
-        completedLessons: 0,
-        percentageComplete: 0,
-        lessons: new Map(),
-      }
-  );
+  const [courseProgress, setCourseProgress] = useState<CourseProgress>(() => {
+    const saved = loadCourseProgress(id || "");
+    return saved || {
+      courseId: id || "",
+      completedLessons: 0,
+      percentageComplete: 0,
+      totalLessons: 0,
+      lessons: new Map(),
+      lastUpdated: new Date().toISOString(),
+    };
+  });
   const { ipfsGateway: publicIpfsGateway } = getPinataCredentials();
 
   const [certificateImageCID, setCertificateImageCID] = useState<string | null>(
@@ -99,17 +101,39 @@ const CourseLearn: React.FC = () => {
   const { address } = useAccount();
 
   // Check if course is complete
-  const isComplete = isCourseComplete(id || "");
+  const isComplete = useMemo(() => {
+    if (totalLessons === 0) return false;
+    return courseProgress.completedLessons >= totalLessons && courseProgress.percentageComplete >= 100;
+  }, [courseProgress, totalLessons]);
 
-  // Update progress when course content changes
+  // Initialize and update progress when course content loads
   useEffect(() => {
-    if (id) {
-      const progress = loadCourseProgress(id);
-      if (progress) {
-        setCourseProgress(progress);
+    if (id && courseContent && totalLessons > 0) {
+      let progress = loadCourseProgress(id);
+      
+      if (!progress) {
+        // Initialize new progress with correct totalLessons
+        progress = {
+          courseId: id,
+          completedLessons: 0,
+          percentageComplete: 0,
+          totalLessons: totalLessons,
+          lessons: new Map(),
+          lastUpdated: new Date().toISOString(),
+        };
+        // Don't save yet - let user start fresh
+      } else if (progress.totalLessons !== totalLessons) {
+        // Update totalLessons if course content changed
+        progress.totalLessons = totalLessons;
+        // Recalculate percentage
+        progress.percentageComplete = totalLessons > 0 
+          ? Math.round((progress.completedLessons / totalLessons) * 100)
+          : 0;
       }
+      
+      setCourseProgress(progress);
     }
-  }, [id]);
+  }, [id, courseContent, totalLessons]);
 
   // Fetch video URL when current lesson changes to a video type
   useEffect(() => {
@@ -368,11 +392,9 @@ const CourseLearn: React.FC = () => {
                       {section.lessons?.map((lesson, lessonIndex) => {
                         const currentGlobalIndex =
                           lessonGlobalIndex + lessonIndex;
-                        const isCompleted = isLessonCompleted(
-                          id || "",
-                          sectionIndex,
-                          lessonIndex
-                        );
+                        const isCompleted = courseProgress.lessons.get(
+                          `${sectionIndex}_${lessonIndex}`
+                        )?.completed || false;
                         return (
                           <button
                             key={lessonIndex}
@@ -476,11 +498,9 @@ const CourseLearn: React.FC = () => {
               {/* Mark as Complete Button */}
               {currentLesson && (
                 <div className="flex justify-center">
-                  {isLessonCompleted(
-                    id || "",
-                    currentLesson.sectionIndex,
-                    currentLesson.lessonIndex
-                  ) ? (
+                  {courseProgress.lessons.get(
+                    `${currentLesson.sectionIndex}_${currentLesson.lessonIndex}`
+                  )?.completed ? (
                     <Button
                       disabled
                       className="bg-green-600 text-white rounded-lg h-10 px-6 text-sm flex items-center gap-2 opacity-75 cursor-not-allowed"
